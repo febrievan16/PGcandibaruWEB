@@ -19,7 +19,9 @@ Route::get('/storage/{folder}/{filename}', function (string $folder, string $fil
     $path = storage_path("app/public/{$folder}/" . basename($filename));
     abort_unless(is_file($path), 404);
 
-    return response()->file($path);
+    return response()->file($path, [
+        'Cache-Control' => 'public, max-age=31536000, immutable',
+    ]);
 })->where(['folder' => 'gallery|articles', 'filename' => '[A-Za-z0-9._-]+'])->name('storage.public');
 
 // M2 & M3: Event Catalog & 2-Step Schedule-First Booking Wizard

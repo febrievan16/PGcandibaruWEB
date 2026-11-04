@@ -331,5 +331,80 @@ class GulaTourTest extends TestCase
 
         $this->assertGreaterThan(0, AuditLog::count());
     }
+
+    /**
+     * Performance & N+1 Audit: Verify every public, user, and admin page renders with zero lazy-loading (N+1) and minimal SQL queries.
+     */
+    public function test_all_pages_render_without_n_plus_one_or_lazy_loading_and_within_query_budget(): void
+    {
+        \Illuminate\Database\Eloquent\Model::preventLazyLoading(true);
+
+        // Verify CompanyProfile::current() works with database cache driver (serializable_classes = false)
+        config(['cache.default' => 'database']);
+        \Illuminate\Support\Facades\Cache::forget(\App\Models\CompanyProfile::CACHE_KEY);
+        $firstCall = \App\Models\CompanyProfile::current();
+        $secondCall = \App\Models\CompanyProfile::current();
+        $this->assertInstanceOf(\App\Models\CompanyProfile::class, $firstCall);
+        $this->assertInstanceOf(\App\Models\CompanyProfile::class, $secondCall);
+        $this->assertEquals($firstCall->company_name, $secondCall->company_name);
+        config(['cache.default' => 'array']);
+
+        $admin = User::where('role', 'admin')->firstOrFail();
+        $regularUser = User::where('role', 'user')->firstOrFail();
+        $event = Event::where('slug', 'tour-pabrik-candi-baru')->firstOrFail();
+        $article = Article::firstOrFail();
+        $paidOrder = Order::where('status', 'paid')->firstOrFail();
+
+        // Warm company profile cache once, then verify public pages
+        $publicRoutes = [
+            '/',
+            '/profil',
+            '/profil/artikel',
+            '/profil/artikel/' . $article->slug,
+            '/events',
+            '/events/' . $event->slug,
+            '/orders/lookup',
+            "/orders/{$paidOrder->order_code}?token={$paidOrder->access_token}",
+            "/orders/{$paidOrder->order_code}/e-ticket?token={$paidOrder->access_token}",
+        ];
+
+        foreach ($publicRoutes as $uri) {
+            \Illuminate\Support\Facades\DB::flushQueryLog();
+            \Illuminate\Support\Facades\DB::enableQueryLog();
+
+            $this->get($uri)->assertStatus(200);
+
+            $queryCount = count(\Illuminate\Support\Facades\DB::getQueryLog());
+            $this->assertLessThanOrEqual(6, $queryCount, "Public URI [{$uri}] executed {$queryCount} queries (expected <= 6).");
+        }
+
+        // Verify Registered User Order History page (/akun/pesanan)
+        \Illuminate\Support\Facades\DB::flushQueryLog();
+        \Illuminate\Support\Facades\DB::enableQueryLog();
+        $this->actingAs($regularUser)->get('/akun/pesanan')->assertStatus(200);
+        $this->assertLessThanOrEqual(4, count(\Illuminate\Support\Facades\DB::getQueryLog()));
+
+        // Verify Admin routes (especially /admin/events where canBeActivated() runs in a loop, and /admin/orders master-detail)
+        $adminRoutes = [
+            '/admin' => 7,
+            '/admin/orders' => 7,
+            '/admin/events' => 2,
+            '/admin/events/' . $event->id . '/edit' => 3,
+            '/admin/tickets/scanner' => 6,
+            '/admin/profile' => 3,
+            '/admin/articles' => 2,
+            '/admin/articles/' . $article->id . '/edit' => 2,
+        ];
+
+        foreach ($adminRoutes as $uri => $maxQueries) {
+            \Illuminate\Support\Facades\DB::flushQueryLog();
+            \Illuminate\Support\Facades\DB::enableQueryLog();
+
+            $this->actingAs($admin)->get($uri)->assertStatus(200);
+
+            $queryCount = count(\Illuminate\Support\Facades\DB::getQueryLog());
+            $this->assertLessThanOrEqual($maxQueries, $queryCount, "Admin URI [{$uri}] executed {$queryCount} queries (expected <= {$maxQueries}).");
+        }
+    }
 }
 

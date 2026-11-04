@@ -108,7 +108,8 @@ class AuthController extends Controller
         /** @var User $user */
         $user = Auth::user();
 
-        $orders = Order::with(['schedule.event', 'tickets'])
+        $orders = Order::with(['schedule.event'])
+            ->withCount('tickets')
             ->where('user_id', $user->id)
             ->latest('created_at')
             ->get();

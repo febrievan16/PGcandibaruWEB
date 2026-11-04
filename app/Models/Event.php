@@ -44,12 +44,20 @@ class Event extends Model
     }
 
     /**
-     * Determine whether the event meets FR-04 requirements to be activated.
+     * Determine whether the event meets FR-04 requirements to be activated without N+1 queries.
      */
     public function canBeActivated(): bool
     {
         if ($this->ticket_price <= 0) {
             return false;
+        }
+
+        if (array_key_exists('has_valid_schedules', $this->getAttributes())) {
+            return (bool) $this->getAttribute('has_valid_schedules');
+        }
+
+        if ($this->relationLoaded('schedules')) {
+            return $this->schedules->contains(fn (Schedule $schedule): bool => $schedule->quota_total > 0);
         }
 
         return $this->schedules()

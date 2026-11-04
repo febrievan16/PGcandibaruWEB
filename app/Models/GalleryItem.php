@@ -18,6 +18,13 @@ use Illuminate\Database\Eloquent\Model;
 class GalleryItem extends Model
 {
     /**
+     * In-memory cache of computed gallery slides for this model instance.
+     *
+     * @var array<int, array{url: string, caption: string}>|null
+     */
+    protected ?array $cachedSlides = null;
+
+    /**
      * Get the attributes that should be cast.
      *
      * @return array<string, string>
@@ -38,6 +45,10 @@ class GalleryItem extends Model
      */
     public function gallerySlides(): array
     {
+        if ($this->cachedSlides !== null) {
+            return $this->cachedSlides;
+        }
+
         $urls = [];
 
         if (! empty($this->image_url)) {
@@ -61,7 +72,7 @@ class GalleryItem extends Model
                 ];
             }
 
-            return $slides;
+            return $this->cachedSlides = $slides;
         }
 
         // Default multi-photo archival SVG plates when a gallery item uses heritage illustrations
@@ -79,7 +90,7 @@ class GalleryItem extends Model
             ];
         }
 
-        return $slides;
+        return $this->cachedSlides = $slides;
     }
 
     /**

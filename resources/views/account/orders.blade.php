@@ -75,7 +75,7 @@
                                             <a href="{{ route('orders.ticket', ['order_code' => $order->order_code, 'token' => $order->access_token, 'print' => 1]) }}"
                                                target="_blank"
                                                class="btn-heritage-secondary text-xs py-1.5 px-3 min-h-[36px]">
-                                                Unduh E-Ticket ({{ $order->tickets->count() }})
+                                                Unduh E-Ticket ({{ $order->tickets_count ?? $order->tickets->count() }})
                                             </a>
                                         @endif
                                     </td>

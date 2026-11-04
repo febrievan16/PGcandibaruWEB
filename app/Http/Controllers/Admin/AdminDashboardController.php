@@ -32,24 +32,33 @@ class AdminDashboardController extends Controller
      */
     public function index(): View
     {
-        $totalRevenue = (int) Order::where('status', 'paid')->sum('total_amount');
-        $paidOrdersCount = Order::where('status', 'paid')->count();
-        $pendingOrdersCount = Order::where('status', 'pending')->count();
-        $ticketsSoldCount = (int) Order::where('status', 'paid')->sum('ticket_qty');
+        $metrics = Order::query()
+            ->selectRaw("
+                COALESCE(SUM(CASE WHEN status = 'paid' THEN total_amount ELSE 0 END), 0) as total_revenue,
+                COUNT(CASE WHEN status = 'paid' THEN 1 END) as paid_orders_count,
+                COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_orders_count,
+                COALESCE(SUM(CASE WHEN status = 'paid' THEN ticket_qty ELSE 0 END), 0) as tickets_sold_count
+            ")
+            ->first();
 
-        $schedules = Schedule::with('event')
+        $totalRevenue = (int) ($metrics->total_revenue ?? 0);
+        $paidOrdersCount = (int) ($metrics->paid_orders_count ?? 0);
+        $pendingOrdersCount = (int) ($metrics->pending_orders_count ?? 0);
+        $ticketsSoldCount = (int) ($metrics->tickets_sold_count ?? 0);
+
+        $schedules = Schedule::with('event:id,title')
             ->orderBy('tour_date')
             ->orderBy('start_time')
             ->get();
 
-        $notifications = AdminNotification::with('order')
+        $notifications = AdminNotification::query()
             ->latest('created_at')
             ->limit(8)
             ->get();
 
         $unreadNotificationsCount = AdminNotification::where('is_read', false)->count();
 
-        $auditLogs = AuditLog::with('user')
+        $auditLogs = AuditLog::with('user:id,name')
             ->latest('created_at')
             ->limit(10)
             ->get();
@@ -71,7 +80,7 @@ class AdminDashboardController extends Controller
      */
     public function orders(Request $request): View
     {
-        $query = Order::with(['schedule.event', 'tickets', 'user'])
+        $query = Order::with(['schedule:id,event_id,tour_date,session_code,start_time,end_time'])
             ->latest('created_at');
 
         if ($request->filled('status')) {
@@ -95,15 +104,20 @@ class AdminDashboardController extends Controller
 
         $selectedOrder = null;
         if ($request->filled('inspect')) {
-            $selectedOrder = Order::with(['schedule.event', 'tickets', 'user'])
-                ->where('order_code', (string) $request->query('inspect'))
-                ->first();
+            $inspectCode = (string) $request->query('inspect');
+            $selectedOrder = $orders->getCollection()->firstWhere('order_code', $inspectCode)
+                ?? Order::where('order_code', $inspectCode)->first();
         }
         if (! $selectedOrder && $orders->count() > 0) {
             $selectedOrder = $orders->first();
         }
 
-        $schedules = Schedule::with('event')->orderByDesc('tour_date')->get();
+        $selectedOrder?->loadMissing(['schedule.event', 'tickets']);
+
+        $schedules = Schedule::with('event:id,title')
+            ->select(['id', 'event_id', 'tour_date', 'session_code'])
+            ->orderByDesc('tour_date')
+            ->get();
 
         return view('admin.orders.index', [
             'orders' => $orders,
@@ -126,7 +140,7 @@ class AdminDashboardController extends Controller
 
         if ($oldStatus !== $newStatus) {
             if ($newStatus === 'paid') {
-                $this->midtransService->handleNotification([
+                $order = $this->midtransService->handleNotification([
                     'order_id' => $order->order_code,
                     'transaction_status' => 'settlement',
                     'payment_type' => 'manual_admin_verification',
@@ -146,7 +160,7 @@ class AdminDashboardController extends Controller
             ], $request);
         }
 
-        return back()->with('status', "Status pesanan {$order->order_code} berhasil diperbarui menjadi {$order->fresh()->statusLabel()}.");
+        return back()->with('status', "Status pesanan {$order->order_code} berhasil diperbarui menjadi {$order->statusLabel()}.");
     }
 
     /**
@@ -155,7 +169,9 @@ class AdminDashboardController extends Controller
     public function events(): View
     {
         $events = Event::withCount('schedules')
-            ->with('schedules')
+            ->withExists(['schedules as has_valid_schedules' => function ($query): void {
+                $query->where('quota_total', '>', 0);
+            }])
             ->orderByDesc('id')
             ->get();
 
@@ -367,14 +383,25 @@ class AdminDashboardController extends Controller
      */
     public function scanner(): View
     {
-        $recentCheckIns = \App\Models\Ticket::with(['order.schedule.event'])
+        $recentCheckIns = \App\Models\Ticket::with([
+            'order:id,schedule_id,order_code,buyer_name',
+            'order.schedule:id,event_id,tour_date,session_code',
+            'order.schedule.event:id,title',
+        ])
             ->where('status', 'used')
             ->latest('checked_in_at')
             ->limit(10)
             ->get();
 
+        $sampleValidTickets = \App\Models\Ticket::with('order:id,buyer_name')
+            ->select(['id', 'order_id', 'ticket_code', 'qr_payload', 'status'])
+            ->where('status', 'valid')
+            ->limit(4)
+            ->get();
+
         return view('admin.tickets.scanner', [
             'recentCheckIns' => $recentCheckIns,
+            'sampleValidTickets' => $sampleValidTickets,
         ]);
     }
 
@@ -423,14 +450,12 @@ class AdminDashboardController extends Controller
      */
     public function editProfile(): View
     {
-        $profile = CompanyProfile::first();
+        $profile = CompanyProfile::current();
         $galleryItems = GalleryItem::orderBy('sort_order')->get();
-        $articles = Article::latest('published_at')->latest('id')->get();
 
         return view('admin.profile.edit', [
             'profile' => $profile,
             'galleryItems' => $galleryItems,
-            'articles' => $articles,
         ]);
     }
 
@@ -607,7 +632,22 @@ class AdminDashboardController extends Controller
      */
     public function articles(): View
     {
-        $articles = Article::latest('published_at')->latest('id')->get();
+        $articles = Article::query()
+            ->select([
+                'id',
+                'slug',
+                'title',
+                'category',
+                'author_name',
+                'cover_image',
+                'reading_time_minutes',
+                'is_published',
+                'published_at',
+                'created_at',
+            ])
+            ->latest('published_at')
+            ->latest('id')
+            ->get();
 
         return view('admin.articles.index', [
             'articles' => $articles,
