@@ -483,7 +483,7 @@ class AdminDashboardController extends Controller
     }
 
     /**
-     * Add a gallery item to Company Profile (FR-12) supporting JPG/PNG file uploads.
+     * Add a gallery item to Company Profile (FR-12) supporting single or multiple JPG/PNG file uploads.
      */
     public function storeGallery(Request $request): RedirectResponse
     {
@@ -493,47 +493,108 @@ class AdminDashboardController extends Controller
             'category' => ['required', 'string', 'max:80'],
             'year_label' => ['nullable', 'string', 'max:40'],
             'image_file' => ['nullable', 'file', 'mimes:jpg,jpeg,png', 'max:5120'],
+            'image_files' => ['nullable', 'array'],
+            'image_files.*' => ['file', 'mimes:jpg,jpeg,png', 'max:5120'],
             'image_url' => ['nullable', 'string', 'max:255'],
         ], [
             'image_file.mimes' => 'Format foto wajib berupa JPG, JPEG, atau PNG.',
             'image_file.max' => 'Ukuran file foto maksimal 5 MB.',
+            'image_files.*.mimes' => 'Setiap foto wajib berformat JPG, JPEG, atau PNG.',
+            'image_files.*.max' => 'Ukuran setiap foto maksimal 5 MB.',
         ]);
 
-        $imageUrl = ($validated['image_url'] ?? null) ?: null;
+        $photos = [];
 
         if ($request->hasFile('image_file')) {
             $storedPath = $request->file('image_file')->store('gallery', 'public');
             if ($storedPath !== false) {
-                $imageUrl = '/storage/' . ltrim($storedPath, '/');
+                $photos[] = '/storage/' . ltrim($storedPath, '/');
             }
         }
+
+        if ($request->hasFile('image_files')) {
+            foreach ($request->file('image_files') as $file) {
+                $storedPath = $file->store('gallery', 'public');
+                if ($storedPath !== false) {
+                    $photos[] = '/storage/' . ltrim($storedPath, '/');
+                }
+            }
+        }
+
+        if (! empty($validated['image_url'])) {
+            $photos[] = $validated['image_url'];
+        }
+
+        $primaryImageUrl = $photos[0] ?? null;
 
         $galleryItem = GalleryItem::create([
             'title' => $validated['title'],
             'caption' => $validated['caption'] ?? null,
             'category' => $validated['category'],
             'year_label' => ($validated['year_label'] ?? null) ?: 'Arsip PG Candi Baru',
-            'image_url' => $imageUrl,
+            'image_url' => $primaryImageUrl,
+            'photos' => $photos,
             'sort_order' => ((int) GalleryItem::max('sort_order')) + 1,
             'is_active' => true,
         ]);
 
         $this->recordAudit('gallery.created', 'GalleryItem', $galleryItem->id, null, [
             'title' => $galleryItem->title,
-            'image_url' => $galleryItem->image_url,
+            'photos_count' => count($photos),
         ], $request);
 
-        return back()->with('status', 'Item galeri heritage berhasil ditambahkan.');
+        return back()->with('status', 'Koleksi galeri heritage berhasil ditambahkan (' . max(1, count($photos)) . ' foto).');
     }
 
     /**
-     * Delete a gallery item and its stored image file if uploaded locally (FR-12).
+     * Append additional JPG/PNG photos to an existing gallery item.
+     */
+    public function addGalleryPhotos(Request $request, GalleryItem $galleryItem): RedirectResponse
+    {
+        $request->validate([
+            'image_files' => ['required', 'array', 'min:1'],
+            'image_files.*' => ['file', 'mimes:jpg,jpeg,png', 'max:5120'],
+        ], [
+            'image_files.required' => 'Pilih minimal 1 file foto JPG/PNG.',
+            'image_files.*.mimes' => 'Setiap foto wajib berformat JPG, JPEG, atau PNG.',
+            'image_files.*.max' => 'Ukuran setiap foto maksimal 5 MB.',
+        ]);
+
+        $existingPhotos = is_array($galleryItem->photos) ? $galleryItem->photos : [];
+        if ($galleryItem->image_url && ! in_array($galleryItem->image_url, $existingPhotos, true)) {
+            array_unshift($existingPhotos, $galleryItem->image_url);
+        }
+
+        foreach ($request->file('image_files') as $file) {
+            $storedPath = $file->store('gallery', 'public');
+            if ($storedPath !== false) {
+                $existingPhotos[] = '/storage/' . ltrim($storedPath, '/');
+            }
+        }
+
+        $galleryItem->update([
+            'image_url' => $existingPhotos[0] ?? $galleryItem->image_url,
+            'photos' => array_values(array_unique($existingPhotos)),
+        ]);
+
+        return back()->with('status', 'Foto tambahan berhasil dimasukkan ke galeri "' . $galleryItem->title . '".');
+    }
+
+    /**
+     * Delete a gallery item and all its stored image files if uploaded locally (FR-12).
      */
     public function deleteGallery(GalleryItem $galleryItem): RedirectResponse
     {
-        if ($galleryItem->image_url && str_starts_with($galleryItem->image_url, '/storage/gallery/')) {
-            $relativePath = ltrim(substr($galleryItem->image_url, strlen('/storage/')), '/');
-            Storage::disk('public')->delete($relativePath);
+        $allUrls = is_array($galleryItem->photos) ? $galleryItem->photos : [];
+        if ($galleryItem->image_url) {
+            $allUrls[] = $galleryItem->image_url;
+        }
+
+        foreach (array_unique($allUrls) as $url) {
+            if (is_string($url) && str_starts_with($url, '/storage/gallery/')) {
+                $relativePath = ltrim(substr($url, strlen('/storage/')), '/');
+                Storage::disk('public')->delete($relativePath);
+            }
         }
 
         $galleryItem->delete();

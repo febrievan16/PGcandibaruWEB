@@ -101,20 +101,21 @@
                         </div>
                     </div>
                     <div>
-                        <label for="image_file" class="block text-xs font-semibold uppercase text-[#6E635A] mb-1">
-                            Upload Foto Dokumentasi (JPG, PNG — Maks 5MB)
+                        <label for="image_files" class="block text-xs font-semibold uppercase text-[#6E635A] mb-1">
+                            Upload Beberapa Foto Dokumentasi Sekaligus (JPG, PNG — Maks 5MB/Foto)
                         </label>
                         <input type="file"
-                               id="image_file"
-                               name="image_file"
+                               id="image_files"
+                               name="image_files[]"
+                               multiple
                                accept=".jpg,.jpeg,.png,image/jpeg,image/png"
                                class="input-heritage text-xs file:mr-3 file:py-1.5 file:px-3 file:border file:border-[#6B3F1E] file:bg-[#F3EAD8] file:text-[#6B3F1E] file:font-semibold file:rounded-[2px] cursor-pointer">
                         <span class="text-[11px] text-[#6E635A] mt-1 block">
-                            Format yang didukung: <strong>.JPG, .JPEG, .PNG</strong>. Jika dikosongkan, sistem menampilkan ilustrasi arsip heritage.
+                            Anda dapat memilih <strong>1 atau beberapa foto sekaligus</strong> (Ctrl/Shift + Klik) untuk ditampilkan di dalam pop-up album galeri ini.
                         </span>
                         <div id="gallery-upload-preview-wrap" class="hidden mt-2 border border-[#E3D9C9] bg-[#FAF6EE] p-2">
-                            <span class="text-[11px] text-[#6E635A] block mb-1">Pratinjau Foto:</span>
-                            <img id="gallery-upload-preview" src="" alt="Pratinjau Upload" class="w-full h-36 object-cover border border-[#E3D9C9]">
+                            <span id="gallery-upload-count" class="text-[11px] text-[#6E635A] font-semibold block mb-1.5">Pratinjau Foto Terpilih:</span>
+                            <div id="gallery-upload-grid" class="grid grid-cols-3 gap-2"></div>
                         </div>
                     </div>
                     <div>
@@ -129,29 +130,54 @@
 
             <div class="border border-[#E3D9C9] bg-[#FFFFFF] divide-y divide-[#E3D9C9]">
                 @forelse($galleryItems as $item)
-                    <div class="p-4 flex items-start justify-between gap-3">
-                        <div class="flex items-start gap-3">
-                            @if($item->image_url)
-                                <img src="{{ $item->image_url }}"
+                    @php
+                        $slides = $item->gallerySlides();
+                    @endphp
+                    <div class="p-4 space-y-3">
+                        <div class="flex items-start justify-between gap-3">
+                            <div class="flex items-start gap-3">
+                                <img src="{{ $slides[0]['url'] }}"
                                      alt="{{ $item->title }}"
                                      class="w-16 h-16 object-cover border border-[#E3D9C9] bg-[#F3EAD8] shrink-0">
-                            @else
-                                <div class="w-16 h-16 border border-[#E3D9C9] bg-[#F3EAD8] flex items-center justify-center text-[10px] text-[#6B3F1E] font-semibold text-center px-1 shrink-0">
-                                    Arsip SVG
+                                <div>
+                                    <span class="text-[11px] uppercase tracking-wider font-semibold text-[#A67C52]">
+                                        {{ $item->category }} &bull; {{ $item->year_label }} &bull; {{ count($slides) }} Slide Foto
+                                    </span>
+                                    <h3 class="font-serif font-bold text-base text-[#2A211A]">{{ $item->title }}</h3>
+                                    <p class="text-xs text-[#6E635A] mt-0.5">{{ $item->caption }}</p>
                                 </div>
-                            @endif
-                            <div>
-                                <span class="text-[11px] uppercase tracking-wider font-semibold text-[#A67C52]">
-                                    {{ $item->category }} &bull; {{ $item->year_label }}
-                                </span>
-                                <h3 class="font-serif font-bold text-base text-[#2A211A]">{{ $item->title }}</h3>
-                                <p class="text-xs text-[#6E635A] mt-0.5">{{ $item->caption }}</p>
                             </div>
+                            <form action="{{ route('admin.profile.gallery.delete', $item) }}" method="POST">
+                                @csrf
+                                @method('DELETE')
+                                <button type="submit" class="text-xs text-[#8B2E1F] hover:underline cursor-pointer">Hapus</button>
+                            </form>
                         </div>
-                        <form action="{{ route('admin.profile.gallery.delete', $item) }}" method="POST">
+
+                        <!-- Thumbnail strip of photos inside this gallery item -->
+                        <div class="flex flex-wrap items-center gap-2 pt-1">
+                            @foreach($slides as $idx => $slide)
+                                <img src="{{ $slide['url'] }}"
+                                     alt="Slide {{ $idx + 1 }}"
+                                     class="w-12 h-9 object-cover border border-[#E3D9C9] bg-[#FAF6EE]">
+                            @endforeach
+                        </div>
+
+                        <!-- Form to append additional photos into this gallery item -->
+                        <form action="{{ route('admin.profile.gallery.photos.store', $item) }}"
+                              method="POST"
+                              enctype="multipart/form-data"
+                              class="pt-2 border-t border-[#E3D9C9] flex flex-wrap items-center justify-between gap-2">
                             @csrf
-                            @method('DELETE')
-                            <button type="submit" class="text-xs text-[#8B2E1F] hover:underline cursor-pointer">Hapus</button>
+                            <input type="file"
+                                   name="image_files[]"
+                                   multiple
+                                   required
+                                   accept=".jpg,.jpeg,.png,image/jpeg,image/png"
+                                   class="text-xs text-[#6E635A] file:mr-2 file:py-1 file:px-2.5 file:border file:border-[#E3D9C9] file:bg-[#FAF6EE] file:text-[#2A211A] file:text-xs cursor-pointer">
+                            <button type="submit" class="px-3 py-1 text-xs font-semibold border border-[#6B3F1E] text-[#6B3F1E] hover:bg-[#F3EAD8] cursor-pointer">
+                                + Tambah Foto ke Galeri Ini
+                            </button>
                         </form>
                     </div>
                 @empty
@@ -163,22 +189,32 @@
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
-            const fileInput = document.getElementById('image_file');
+            const fileInput = document.getElementById('image_files');
             const previewWrap = document.getElementById('gallery-upload-preview-wrap');
-            const previewImg = document.getElementById('gallery-upload-preview');
+            const previewGrid = document.getElementById('gallery-upload-grid');
+            const previewCount = document.getElementById('gallery-upload-count');
 
-            if (fileInput && previewWrap && previewImg) {
+            if (fileInput && previewWrap && previewGrid) {
                 fileInput.addEventListener('change', function () {
-                    const file = fileInput.files && fileInput.files[0];
-                    if (file) {
-                        const reader = new FileReader();
-                        reader.onload = function (e) {
-                            previewImg.src = e.target.result;
-                            previewWrap.classList.remove('hidden');
-                        };
-                        reader.readAsDataURL(file);
+                    previewGrid.innerHTML = '';
+                    const files = fileInput.files ? Array.from(fileInput.files) : [];
+                    if (files.length > 0) {
+                        previewWrap.classList.remove('hidden');
+                        if (previewCount) {
+                            previewCount.textContent = 'Pratinjau ' + files.length + ' Foto Terpilih:';
+                        }
+                        files.forEach(function (file) {
+                            const reader = new FileReader();
+                            reader.onload = function (e) {
+                                const img = document.createElement('img');
+                                img.src = e.target.result;
+                                img.alt = file.name;
+                                img.className = 'w-full h-20 object-cover border border-[#E3D9C9]';
+                                previewGrid.appendChild(img);
+                            };
+                            reader.readAsDataURL(file);
+                        });
                     } else {
-                        previewImg.src = '';
                         previewWrap.classList.add('hidden');
                     }
                 });

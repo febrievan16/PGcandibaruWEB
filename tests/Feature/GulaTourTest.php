@@ -275,20 +275,29 @@ class GulaTourTest extends TestCase
             ->assertSee($validTicket->ticket_code)
             ->assertSee('TICKET_ALREADY_USED');
 
-        // Admin gallery creation with JPG/PNG file upload
+        // Admin gallery creation with multiple JPG/PNG file uploads & appending additional photos
         Storage::fake('public');
-        $fakePng = UploadedFile::fake()->create('lokomotif-candi-baru.png', 120, 'image/png');
+        $fakePng1 = UploadedFile::fake()->create('lokomotif-1.png', 120, 'image/png');
+        $fakeJpg2 = UploadedFile::fake()->create('lokomotif-2.jpg', 120, 'image/jpeg');
         $galleryPost = $this->actingAs($admin)
             ->from(route('admin.profile.edit'))
             ->post(route('admin.profile.gallery.store'), [
                 'title' => 'Lokomotif Uap Candi Baru',
                 'category' => 'Arsip Sejarah',
-                'image_file' => $fakePng,
+                'image_files' => [$fakePng1, $fakeJpg2],
             ]);
         $galleryPost->assertRedirect(route('admin.profile.edit'));
         $createdGallery = GalleryItem::where('title', 'Lokomotif Uap Candi Baru')->firstOrFail();
         $this->assertNotNull($createdGallery->image_url);
-        $this->assertStringStartsWith('/storage/gallery/', (string) $createdGallery->image_url);
+        $this->assertCount(2, $createdGallery->gallerySlides());
+
+        $fakePng3 = UploadedFile::fake()->create('lokomotif-3.png', 120, 'image/png');
+        $appendPost = $this->actingAs($admin)
+            ->post(route('admin.profile.gallery.photos.store', $createdGallery), [
+                'image_files' => [$fakePng3],
+            ]);
+        $appendPost->assertRedirect();
+        $this->assertCount(3, $createdGallery->fresh()->gallerySlides());
 
         // Public & Admin Article flow on /profil and /admin/articles
         $article = Article::firstOrFail();

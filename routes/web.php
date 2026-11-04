@@ -72,6 +72,7 @@ Route::prefix('admin')
         Route::put('/profile', [AdminDashboardController::class, 'updateProfile'])->name('profile.update');
         Route::get('/profile/gallery', fn () => redirect()->route('admin.profile.edit'));
         Route::post('/profile/gallery', [AdminDashboardController::class, 'storeGallery'])->name('profile.gallery.store');
+        Route::post('/profile/gallery/{galleryItem}/photos', [AdminDashboardController::class, 'addGalleryPhotos'])->name('profile.gallery.photos.store');
         Route::delete('/profile/gallery/{galleryItem}', [AdminDashboardController::class, 'deleteGallery'])->name('profile.gallery.delete');
 
         Route::get('/articles', [AdminDashboardController::class, 'articles'])->name('articles.index');
