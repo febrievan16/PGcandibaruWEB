@@ -1,0 +1,267 @@
+<?php
+
+namespace Tests\Feature;
+
+use App\Models\AuditLog;
+use App\Models\Event;
+use App\Models\GalleryItem;
+use App\Models\Order;
+use App\Models\Schedule;
+use App\Models\Ticket;
+use App\Models\User;
+use App\Services\MidtransService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Tests\TestCase;
+
+class GulaTourTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        $this->withoutVite();
+        $this->seed();
+    }
+
+    /**
+     * M1 (FR-01, FEATURES.md §2): Company profile renders history, vision, mission, and heritage placeholder when gallery is empty.
+     */
+    public function test_company_profile_and_empty_gallery_placeholder(): void
+    {
+        $response = $this->get('/profil');
+        $response->assertStatus(200);
+        $response->assertSee('PT Pabrik Gula Candi Baru');
+        $response->assertSee('1911');
+
+        GalleryItem::query()->delete();
+
+        $emptyGalleryResponse = $this->get('/profil');
+        $emptyGalleryResponse->assertStatus(200);
+        $emptyGalleryResponse->assertSee('Koleksi Foto Arsip Sedang Dalam Kurasi');
+    }
+
+    /**
+     * M2 (FR-02, FR-09, DEC-001, DEC-003): Active events catalog hides draft events, and schedules API returns real-time remaining quota.
+     */
+    public function test_catalog_shows_only_active_events_and_schedules_api_returns_quota(): void
+    {
+        $catalog = $this->get('/events');
+        $catalog->assertStatus(200);
+        $catalog->assertSee('Tour Heritage & Edukasi Pabrik Gula Candi Baru');
+        $catalog->assertDontSee('Tur Khusus Pembukaan Musim Giling (Konfigurasi TBD)');
+
+        $api = $this->getJson('/api/v1/events/tour-pabrik-candi-baru/schedules');
+        $api->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.slug', 'tour-pabrik-candi-baru')
+            ->assertJsonPath('data.ticket_price', 75000)
+            ->assertJsonPath('data.currency', 'IDR');
+    }
+
+    /**
+     * M3 (DEC-003): Step 2 buyer form is NOT rendered before a valid schedule is selected, and IS rendered after selection.
+     */
+    public function test_booking_wizard_enforces_schedule_selection_first(): void
+    {
+        $event = Event::where('slug', 'tour-pabrik-candi-baru')->firstOrFail();
+        $openSchedule = $event->schedules->first(fn (Schedule $s): bool => $s->isAvailable());
+
+        $step1View = $this->get("/events/{$event->slug}");
+        $step1View->assertStatus(200);
+        $step1View->assertSee('Langkah 2 Terkunci (Aturan DEC-003)');
+        $step1View->assertDontSee('id="booking-wizard-form"', false);
+
+        $step2View = $this->get("/events/{$event->slug}?schedule_id={$openSchedule->id}");
+        $step2View->assertStatus(200);
+        $step2View->assertSee('id="booking-wizard-form"', false);
+    }
+
+    /**
+     * M3 (DEC-001, FR-09, TASK-06): API order creation calculates flat price server-side, locks quota atomically, and enforces idempotency.
+     */
+    public function test_create_order_calculates_flat_price_decrements_quota_and_respects_idempotency(): void
+    {
+        $event = Event::where('slug', 'tour-pabrik-candi-baru')->firstOrFail();
+        $schedule = $event->schedules()->where('status', 'open')->where('quota_booked', '<', 10)->firstOrFail();
+        $initialRemaining = $schedule->remainingQuota();
+
+        $headers = ['X-Idempotency-Key' => 'idem-key-test-12345'];
+        $payload = [
+            'schedule_id' => $schedule->id,
+            'quantity' => 3,
+            'customer' => [
+                'name' => 'Budi Santoso',
+                'email' => 'budi@example.com',
+                'phone' => '081234567890',
+            ],
+            'guest_checkout' => true,
+        ];
+
+        $res1 = $this->postJson('/api/v1/orders', $payload, $headers);
+        $res1->assertStatus(201)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.status', 'pending')
+            ->assertJsonPath('data.quantity', 3)
+            ->assertJsonPath('data.total_amount', 75000 * 3);
+
+        $orderCode = $res1->json('data.order_code');
+
+        // Duplicate submission with same X-Idempotency-Key must return the exact same order without double-decrementing quota
+        $res2 = $this->postJson('/api/v1/orders', $payload, $headers);
+        $res2->assertStatus(201)
+            ->assertJsonPath('data.order_code', $orderCode);
+
+        $this->assertEquals($initialRemaining - 3, $schedule->fresh()->remainingQuota());
+
+        // Exceeding remaining quota must return 409 QUOTA_EXCEEDED
+        $resExceed = $this->postJson('/api/v1/orders', [
+            'schedule_id' => $schedule->id,
+            'quantity' => 999,
+            'customer' => [
+                'name' => 'Budi Santoso',
+                'email' => 'budi@example.com',
+                'phone' => '081234567890',
+            ],
+        ]);
+        $resExceed->assertStatus(409)
+            ->assertJsonPath('error.code', 'QUOTA_EXCEEDED');
+    }
+
+    /**
+     * M4 (DEC-002, FR-06, FR-07, TASK-08, TASK-09): Midtrans webhook verifies signature, updates status idempotently, and issues QR tickets.
+     */
+    public function test_midtrans_webhook_verifies_signature_and_issues_tickets_idempotently(): void
+    {
+        $order = Order::where('status', 'pending')->firstOrFail();
+        $midtransService = app(MidtransService::class);
+
+        $grossAmount = $order->total_amount . '.00';
+        $validSignature = $midtransService->computeSignature($order->order_code, '200', $grossAmount);
+
+        // 1. Invalid signature must be rejected with 403
+        $tampered = $this->postJson('/api/v1/payments/notification', [
+            'order_id' => $order->order_code,
+            'transaction_status' => 'settlement',
+            'payment_type' => 'bank_transfer',
+            'gross_amount' => $grossAmount,
+            'status_code' => '200',
+            'signature_key' => 'invalid-signature-key',
+        ]);
+        $tampered->assertStatus(403);
+
+        // 2. Valid settlement webhook updates order to paid and creates ticket_qty tickets
+        $validRes = $this->postJson('/api/v1/payments/notification', [
+            'order_id' => $order->order_code,
+            'transaction_status' => 'settlement',
+            'payment_type' => 'bank_transfer',
+            'gross_amount' => $grossAmount,
+            'status_code' => '200',
+            'signature_key' => $validSignature,
+        ]);
+        $validRes->assertStatus(200)->assertJsonPath('success', true);
+
+        $order->refresh();
+        $this->assertEquals('paid', $order->status);
+        $this->assertCount($order->ticket_qty, $order->tickets);
+
+        // 3. Duplicate webhook call must not duplicate tickets
+        $replayRes = $this->postJson('/api/v1/payments/notification', [
+            'order_id' => $order->order_code,
+            'transaction_status' => 'settlement',
+            'payment_type' => 'bank_transfer',
+            'gross_amount' => $grossAmount,
+            'status_code' => '200',
+            'signature_key' => $validSignature,
+        ]);
+        $replayRes->assertStatus(200);
+        $this->assertCount($order->ticket_qty, $order->fresh()->tickets);
+    }
+
+    /**
+     * M5 (DEC-004, FR-10, TASK-10): Guest signed token access vs. Registered User ownership isolation.
+     */
+    public function test_order_access_isolation_for_guest_and_registered_user(): void
+    {
+        $paidOrder = Order::where('status', 'paid')->firstOrFail();
+
+        // Guest without token -> 403
+        $this->getJson("/api/v1/orders/{$paidOrder->order_code}")
+            ->assertStatus(403);
+
+        // Guest with valid signed token -> 200
+        $this->getJson("/api/v1/orders/{$paidOrder->order_code}?token={$paidOrder->access_token}")
+            ->assertStatus(200)
+            ->assertJsonPath('data.order_code', $paidOrder->order_code);
+
+        // Owner with Bearer token -> 200
+        $this->getJson("/api/v1/orders/{$paidOrder->order_code}", [
+            'Authorization' => 'Bearer gulatour-user-token-demo',
+        ])->assertStatus(200);
+    }
+
+    /**
+     * M6 (FR-04, FR-13..15, TASK-12, TASK-13): Admin role guard, FR-04 event activation guard, quota guard, CSV export, and QR check-in.
+     */
+    public function test_admin_guards_fr04_validation_csv_export_and_qr_checkin(): void
+    {
+        $admin = User::where('role', 'admin')->firstOrFail();
+        $regularUser = User::where('role', 'user')->firstOrFail();
+
+        // Regular user cannot access admin API
+        $this->getJson('/api/v1/admin/orders', [
+            'Authorization' => 'Bearer ' . $regularUser->api_token,
+        ])->assertStatus(403);
+
+        // Admin can export CSV (FR-15)
+        $csvRes = $this->get('/api/v1/admin/orders?export=csv', [
+            'Authorization' => 'Bearer ' . $admin->api_token,
+        ]);
+        $csvRes->assertStatus(200);
+        $this->assertStringContainsString('text/csv', (string) $csvRes->headers->get('Content-Type'));
+
+        // Admin FR-04 guard: cannot activate draft event when ticket_price = 0 or no schedules exist
+        $draftEvent = Event::where('slug', 'tur-khusus-musim-giling-tbd')->firstOrFail();
+        $activateAttempt = $this->actingAs($admin)->put(route('admin.events.update', $draftEvent), [
+            'title' => $draftEvent->title,
+            'description' => $draftEvent->description,
+            'duration_minutes' => 120,
+            'meeting_point' => 'Gerbang Utama',
+            'ticket_price' => 0,
+            'status' => 'active',
+        ]);
+        $activateAttempt->assertSessionHasErrors('status');
+        $this->assertEquals('draft', $draftEvent->fresh()->status);
+
+        // Quota guard: cannot set quota_total below quota_booked (FEATURES.md §7)
+        $bookedSchedule = Schedule::where('quota_booked', '>', 5)->firstOrFail();
+        $quotaAttempt = $this->actingAs($admin)->put(route('admin.schedules.update', $bookedSchedule), [
+            'quota_total' => 2,
+            'status' => 'open',
+        ]);
+        $quotaAttempt->assertSessionHasErrors('schedule');
+
+        // QR Ticket Check-In Validation (FR-14): First scan succeeds, second scan rejected as used
+        $validTicket = Ticket::where('status', 'valid')->firstOrFail();
+
+        $scan1 = $this->postJson('/api/v1/admin/tickets/validate', [
+            'qr_payload' => $validTicket->qr_payload,
+        ], [
+            'Authorization' => 'Bearer ' . $admin->api_token,
+        ]);
+        $scan1->assertStatus(200)
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.status', 'used');
+
+        $scan2 = $this->postJson('/api/v1/admin/tickets/validate', [
+            'qr_payload' => $validTicket->qr_payload,
+        ], [
+            'Authorization' => 'Bearer ' . $admin->api_token,
+        ]);
+        $scan2->assertStatus(409)
+            ->assertJsonPath('error.code', 'TICKET_ALREADY_USED');
+
+        $this->assertGreaterThan(0, AuditLog::count());
+    }
+}
+
