@@ -11,6 +11,8 @@ use App\Models\Ticket;
 use App\Models\User;
 use App\Services\MidtransService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
 
 class GulaTourTest extends TestCase
@@ -260,6 +262,32 @@ class GulaTourTest extends TestCase
         ]);
         $scan2->assertStatus(409)
             ->assertJsonPath('error.code', 'TICKET_ALREADY_USED');
+
+        // Web scanner flow (following redirect to /admin/tickets/scanner with flashed scan_result)
+        $webScan = $this->actingAs($admin)
+            ->from(route('admin.tickets.scanner'))
+            ->followingRedirects()
+            ->post(route('admin.tickets.validate'), [
+                'code' => $validTicket->ticket_code,
+            ]);
+        $webScan->assertStatus(200)
+            ->assertSee($validTicket->ticket_code)
+            ->assertSee('TICKET_ALREADY_USED');
+
+        // Admin gallery creation with JPG/PNG file upload
+        Storage::fake('public');
+        $fakePng = UploadedFile::fake()->create('lokomotif-candi-baru.png', 120, 'image/png');
+        $galleryPost = $this->actingAs($admin)
+            ->from(route('admin.profile.edit'))
+            ->post(route('admin.profile.gallery.store'), [
+                'title' => 'Lokomotif Uap Candi Baru',
+                'category' => 'Arsip Sejarah',
+                'image_file' => $fakePng,
+            ]);
+        $galleryPost->assertRedirect(route('admin.profile.edit'));
+        $createdGallery = GalleryItem::where('title', 'Lokomotif Uap Candi Baru')->firstOrFail();
+        $this->assertNotNull($createdGallery->image_url);
+        $this->assertStringStartsWith('/storage/gallery/', (string) $createdGallery->image_url);
 
         $this->assertGreaterThan(0, AuditLog::count());
     }

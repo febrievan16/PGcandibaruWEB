@@ -11,6 +11,14 @@ use Illuminate\Support\Facades\Route;
 Route::get('/', [PublicController::class, 'home'])->name('home');
 Route::get('/profil', [PublicController::class, 'profile'])->name('profile');
 
+// Serve uploaded gallery images from storage/app/public/gallery even if Windows storage symlink is not active
+Route::get('/storage/gallery/{filename}', function (string $filename) {
+    $path = storage_path('app/public/gallery/' . basename($filename));
+    abort_unless(is_file($path), 404);
+
+    return response()->file($path);
+})->where('filename', '[A-Za-z0-9._-]+')->name('storage.gallery');
+
 // M2 & M3: Event Catalog & 2-Step Schedule-First Booking Wizard
 Route::get('/events', [EventBookingController::class, 'index'])->name('events.index');
 Route::get('/events/{slug}', [EventBookingController::class, 'show'])->name('events.show');
@@ -59,6 +67,7 @@ Route::prefix('admin')
 
         Route::get('/profile', [AdminDashboardController::class, 'editProfile'])->name('profile.edit');
         Route::put('/profile', [AdminDashboardController::class, 'updateProfile'])->name('profile.update');
+        Route::get('/profile/gallery', fn () => redirect()->route('admin.profile.edit'));
         Route::post('/profile/gallery', [AdminDashboardController::class, 'storeGallery'])->name('profile.gallery.store');
         Route::delete('/profile/gallery/{galleryItem}', [AdminDashboardController::class, 'deleteGallery'])->name('profile.gallery.delete');
     });

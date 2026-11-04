@@ -19,9 +19,9 @@
                     </p>
                     @if(!empty($res['ticket']))
                         <dl class="mt-3 pt-3 border-t border-[#E3D9C9] text-xs space-y-1 tabular-nums">
-                            <div>Kode Tiket: <strong>{{ $res['ticket']->ticket_code }}</strong></div>
-                            <div>Pemesan: <strong>{{ $res['ticket']->order->buyer_name }}</strong> ({{ $res['ticket']->order->order_code }})</div>
-                            <div>Event: <strong>{{ $res['ticket']->order->schedule->event->title ?? '-' }}</strong></div>
+                            <div>Kode Tiket: <strong>{{ data_get($res, 'ticket.ticket_code', '-') }}</strong></div>
+                            <div>Pemesan: <strong>{{ data_get($res, 'ticket.buyer_name', data_get($res, 'ticket.order.buyer_name', '-')) }}</strong> ({{ data_get($res, 'ticket.order_code', data_get($res, 'ticket.order.order_code', '-')) }})</div>
+                            <div>Event: <strong>{{ data_get($res, 'ticket.event_title', data_get($res, 'ticket.order.schedule.event.title', '-')) }}</strong></div>
                         </dl>
                     @endif
                 </div>

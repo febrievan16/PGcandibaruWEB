@@ -15,6 +15,7 @@ use App\Services\TicketService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Str;
 use Illuminate\View\View;
 
@@ -386,21 +387,34 @@ class AdminDashboardController extends Controller
         ]);
 
         $result = $this->ticketService->validateAndCheckIn($validated['code']);
+        $ticket = $result['ticket'];
+
+        $flashPayload = [
+            'valid' => $result['valid'],
+            'code' => $result['code'],
+            'message' => $result['message'],
+            'ticket' => $ticket ? [
+                'ticket_code' => $ticket->ticket_code,
+                'buyer_name' => $ticket->order->buyer_name ?? '-',
+                'order_code' => $ticket->order->order_code ?? '-',
+                'event_title' => $ticket->order->schedule->event->title ?? '-',
+            ] : null,
+        ];
 
         if (! $result['valid']) {
             return back()
                 ->withInput()
-                ->with('scan_result', $result);
+                ->with('scan_result', $flashPayload);
         }
 
-        $this->recordAudit('ticket.checked_in', 'Ticket', (int) $result['ticket']?->id, [
+        $this->recordAudit('ticket.checked_in', 'Ticket', (int) $ticket?->id, [
             'status' => 'valid',
         ], [
             'status' => 'used',
-            'ticket_code' => $result['ticket']?->ticket_code,
+            'ticket_code' => $ticket?->ticket_code,
         ], $request);
 
-        return back()->with('scan_result', $result);
+        return back()->with('scan_result', $flashPayload);
     }
 
     /**
@@ -445,7 +459,7 @@ class AdminDashboardController extends Controller
         $profile = CompanyProfile::firstOrNew(['id' => 1]);
         $profile->fill([
             'company_name' => $validated['company_name'],
-            'tagline' => $validated['tagline'],
+            'tagline' => $validated['tagline'] ?? null,
             'established_year' => (int) $validated['established_year'],
             'history' => $validated['history'],
             'vision' => $validated['vision'],
@@ -454,7 +468,7 @@ class AdminDashboardController extends Controller
             'phone' => $validated['phone'],
             'whatsapp' => $validated['whatsapp'],
             'email' => $validated['email'],
-            'operating_hours' => $validated['operating_hours'],
+            'operating_hours' => $validated['operating_hours'] ?? null,
         ]);
         $profile->save();
 
@@ -466,7 +480,7 @@ class AdminDashboardController extends Controller
     }
 
     /**
-     * Add a gallery item to Company Profile (FR-12).
+     * Add a gallery item to Company Profile (FR-12) supporting JPG/PNG file uploads.
      */
     public function storeGallery(Request $request): RedirectResponse
     {
@@ -475,27 +489,50 @@ class AdminDashboardController extends Controller
             'caption' => ['nullable', 'string', 'max:500'],
             'category' => ['required', 'string', 'max:80'],
             'year_label' => ['nullable', 'string', 'max:40'],
+            'image_file' => ['nullable', 'file', 'mimes:jpg,jpeg,png', 'max:5120'],
             'image_url' => ['nullable', 'string', 'max:255'],
+        ], [
+            'image_file.mimes' => 'Format foto wajib berupa JPG, JPEG, atau PNG.',
+            'image_file.max' => 'Ukuran file foto maksimal 5 MB.',
         ]);
 
-        GalleryItem::create([
+        $imageUrl = ($validated['image_url'] ?? null) ?: null;
+
+        if ($request->hasFile('image_file')) {
+            $storedPath = $request->file('image_file')->store('gallery', 'public');
+            if ($storedPath !== false) {
+                $imageUrl = '/storage/' . ltrim($storedPath, '/');
+            }
+        }
+
+        $galleryItem = GalleryItem::create([
             'title' => $validated['title'],
-            'caption' => $validated['caption'],
+            'caption' => $validated['caption'] ?? null,
             'category' => $validated['category'],
-            'year_label' => $validated['year_label'] ?: 'Arsip PG Candi Baru',
-            'image_url' => $validated['image_url'] ?: null,
-            'sort_order' => GalleryItem::max('sort_order') + 1,
+            'year_label' => ($validated['year_label'] ?? null) ?: 'Arsip PG Candi Baru',
+            'image_url' => $imageUrl,
+            'sort_order' => ((int) GalleryItem::max('sort_order')) + 1,
             'is_active' => true,
         ]);
+
+        $this->recordAudit('gallery.created', 'GalleryItem', $galleryItem->id, null, [
+            'title' => $galleryItem->title,
+            'image_url' => $galleryItem->image_url,
+        ], $request);
 
         return back()->with('status', 'Item galeri heritage berhasil ditambahkan.');
     }
 
     /**
-     * Delete a gallery item (FR-12).
+     * Delete a gallery item and its stored image file if uploaded locally (FR-12).
      */
     public function deleteGallery(GalleryItem $galleryItem): RedirectResponse
     {
+        if ($galleryItem->image_url && str_starts_with($galleryItem->image_url, '/storage/gallery/')) {
+            $relativePath = ltrim(substr($galleryItem->image_url, strlen('/storage/')), '/');
+            Storage::disk('public')->delete($relativePath);
+        }
+
         $galleryItem->delete();
 
         return back()->with('status', 'Item galeri berhasil dihapus.');
