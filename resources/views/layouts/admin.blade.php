@@ -56,6 +56,10 @@
                        class="px-3.5 py-2.5 text-sm font-medium rounded-[2px] whitespace-nowrap {{ request()->routeIs('admin.profile.*') ? 'bg-[#F3EAD8] text-[#6B3F1E] font-semibold border-l-2 border-[#6B3F1E]' : 'text-[#2A211A] hover:bg-[#F3EAD8]/60' }}">
                         Profil & Galeri Pabrik
                     </a>
+                    <a href="{{ route('admin.articles.index') }}"
+                       class="px-3.5 py-2.5 text-sm font-medium rounded-[2px] whitespace-nowrap {{ request()->routeIs('admin.articles.*') ? 'bg-[#F3EAD8] text-[#6B3F1E] font-semibold border-l-2 border-[#6B3F1E]' : 'text-[#2A211A] hover:bg-[#F3EAD8]/60' }}">
+                        Artikel & Publikasi
+                    </a>
                 </nav>
             </div>
 

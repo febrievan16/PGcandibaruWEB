@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AdminNotification;
+use App\Models\Article;
 use App\Models\AuditLog;
 use App\Models\CompanyProfile;
 use App\Models\Event;
@@ -424,10 +425,12 @@ class AdminDashboardController extends Controller
     {
         $profile = CompanyProfile::first();
         $galleryItems = GalleryItem::orderBy('sort_order')->get();
+        $articles = Article::latest('published_at')->latest('id')->get();
 
         return view('admin.profile.edit', [
             'profile' => $profile,
             'galleryItems' => $galleryItems,
+            'articles' => $articles,
         ]);
     }
 
@@ -536,6 +539,144 @@ class AdminDashboardController extends Controller
         $galleryItem->delete();
 
         return back()->with('status', 'Item galeri berhasil dihapus.');
+    }
+
+    /**
+     * List all articles in the Admin Dashboard.
+     */
+    public function articles(): View
+    {
+        $articles = Article::latest('published_at')->latest('id')->get();
+
+        return view('admin.articles.index', [
+            'articles' => $articles,
+        ]);
+    }
+
+    /**
+     * Render create or edit form for an Article.
+     */
+    public function editArticle(?Article $article = null): View
+    {
+        return view('admin.articles.form', [
+            'article' => $article,
+        ]);
+    }
+
+    /**
+     * Store a new article or update an existing one, supporting JPG/PNG cover uploads.
+     */
+    public function saveArticle(Request $request, ?Article $article = null): RedirectResponse
+    {
+        $isUpdate = ($article !== null && $article->exists);
+
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:200'],
+            'slug' => ['nullable', 'string', 'max:180'],
+            'category' => ['required', 'string', 'max:80'],
+            'author_name' => ['required', 'string', 'max:120'],
+            'excerpt' => ['required', 'string', 'max:600'],
+            'content' => ['required', 'string'],
+            'reading_time_minutes' => ['nullable', 'integer', 'min:1', 'max:60'],
+            'is_published' => ['nullable', 'boolean'],
+            'cover_file' => ['nullable', 'file', 'mimes:jpg,jpeg,png', 'max:5120'],
+        ], [
+            'cover_file.mimes' => 'Foto sampul artikel wajib berformat JPG, JPEG, atau PNG.',
+            'cover_file.max' => 'Ukuran foto sampul maksimal 5 MB.',
+        ]);
+
+        $slug = ! empty($validated['slug'])
+            ? Str::slug($validated['slug'])
+            : Str::slug($validated['title']);
+
+        $slugQuery = Article::where('slug', $slug);
+        if ($isUpdate) {
+            $slugQuery->where('id', '!=', $article->id);
+        }
+        if ($slugQuery->exists()) {
+            $slug .= '-' . strtolower(Str::random(4));
+        }
+
+        $coverUrl = $isUpdate ? $article->cover_image : null;
+        if ($request->hasFile('cover_file')) {
+            $storedPath = $request->file('cover_file')->store('articles', 'public');
+            if ($storedPath !== false) {
+                $coverUrl = '/storage/' . ltrim($storedPath, '/');
+            }
+        }
+
+        $wordCount = str_word_count(strip_tags($validated['content']));
+        $readingTime = ! empty($validated['reading_time_minutes'])
+            ? (int) $validated['reading_time_minutes']
+            : max(1, (int) ceil($wordCount / 180));
+
+        $isPublished = $request->boolean('is_published', true);
+
+        if ($isUpdate) {
+            $oldValues = $article->only(['title', 'category', 'is_published']);
+            $article->update([
+                'title' => $validated['title'],
+                'slug' => $slug,
+                'category' => $validated['category'],
+                'author_name' => $validated['author_name'],
+                'excerpt' => $validated['excerpt'],
+                'content' => $validated['content'],
+                'cover_image' => $coverUrl,
+                'reading_time_minutes' => $readingTime,
+                'is_published' => $isPublished,
+                'published_at' => $article->published_at ?? ($isPublished ? now() : null),
+            ]);
+
+            $this->recordAudit('article.updated', 'Article', $article->id, $oldValues, [
+                'title' => $article->title,
+                'category' => $article->category,
+                'is_published' => $article->is_published,
+            ], $request);
+
+            return redirect()->route('admin.articles.edit', $article)
+                ->with('status', 'Artikel "' . $article->title . '" berhasil diperbarui.');
+        }
+
+        $newArticle = Article::create([
+            'title' => $validated['title'],
+            'slug' => $slug,
+            'category' => $validated['category'],
+            'author_name' => $validated['author_name'],
+            'excerpt' => $validated['excerpt'],
+            'content' => $validated['content'],
+            'cover_image' => $coverUrl,
+            'reading_time_minutes' => $readingTime,
+            'is_published' => $isPublished,
+            'published_at' => $isPublished ? now() : null,
+        ]);
+
+        $this->recordAudit('article.created', 'Article', $newArticle->id, null, [
+            'title' => $newArticle->title,
+            'slug' => $newArticle->slug,
+        ], $request);
+
+        return redirect()->route('admin.articles.index')
+            ->with('status', 'Artikel baru "' . $newArticle->title . '" berhasil diterbitkan.');
+    }
+
+    /**
+     * Delete an article and its uploaded cover file.
+     */
+    public function deleteArticle(Request $request, Article $article): RedirectResponse
+    {
+        if ($article->cover_image && str_starts_with($article->cover_image, '/storage/articles/')) {
+            $relativePath = ltrim(substr($article->cover_image, strlen('/storage/')), '/');
+            Storage::disk('public')->delete($relativePath);
+        }
+
+        $title = $article->title;
+        $id = $article->id;
+        $article->delete();
+
+        $this->recordAudit('article.deleted', 'Article', $id, ['title' => $title], null, $request);
+
+        return redirect()->route('admin.articles.index')
+            ->with('status', 'Artikel "' . $title . '" berhasil dihapus.');
     }
 
     /**
