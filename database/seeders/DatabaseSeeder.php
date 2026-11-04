@@ -3,6 +3,7 @@
 namespace Database\Seeders;
 
 use App\Models\AdminNotification;
+use App\Models\Article;
 use App\Models\AuditLog;
 use App\Models\CompanyProfile;
 use App\Models\Event;
@@ -159,10 +160,10 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        $date1 = now()->addDays(3)->toDateString();
-        $date2 = now()->addDays(7)->toDateString();
-        $date3 = now()->addDays(14)->toDateString();
-        $pastDate = now()->subDays(2)->toDateString();
+        $date1 = now()->addDays(3)->startOfDay();
+        $date2 = now()->addDays(7)->startOfDay();
+        $date3 = now()->addDays(14)->startOfDay();
+        $pastDate = now()->subDays(2)->startOfDay();
 
         $s1 = Schedule::updateOrCreate(
             ['event_id' => $event1->id, 'tour_date' => $date1, 'session_code' => 'PAGI'],
@@ -232,7 +233,7 @@ class DatabaseSeeder extends Seeder
         );
 
         $paidOrder = Order::updateOrCreate(
-            ['order_code' => 'GT-' . str_replace('-', '', $date1) . '-DEMO01'],
+            ['order_code' => 'GT-' . $date1->format('Ymd') . '-DEMO01'],
             [
                 'idempotency_key' => 'seed-idem-001',
                 'access_token' => 'demo-access-token-paid-001',
@@ -245,7 +246,7 @@ class DatabaseSeeder extends Seeder
                 'unit_price' => 75000,
                 'total_amount' => 150000,
                 'status' => 'paid',
-                'midtrans_order_id' => 'GT-' . str_replace('-', '', $date1) . '-DEMO01',
+                'midtrans_order_id' => 'GT-' . $date1->format('Ymd') . '-DEMO01',
                 'midtrans_txn_id' => 'MID-DEMO-SETTLED01',
                 'snap_token' => '66e4fa55-demo-settled-01',
                 'payment_channel' => 'bank_transfer',
@@ -257,7 +258,7 @@ class DatabaseSeeder extends Seeder
         app(TicketService::class)->issueTicketsForOrder($paidOrder);
 
         Order::updateOrCreate(
-            ['order_code' => 'GT-' . str_replace('-', '', $date2) . '-DEMO02'],
+            ['order_code' => 'GT-' . $date2->format('Ymd') . '-DEMO02'],
             [
                 'idempotency_key' => 'seed-idem-002',
                 'access_token' => 'demo-access-token-pending-002',
@@ -270,7 +271,7 @@ class DatabaseSeeder extends Seeder
                 'unit_price' => 75000,
                 'total_amount' => 225000,
                 'status' => 'pending',
-                'midtrans_order_id' => 'GT-' . str_replace('-', '', $date2) . '-DEMO02',
+                'midtrans_order_id' => 'GT-' . $date2->format('Ymd') . '-DEMO02',
                 'snap_token' => '66e4fa55-demo-pending-02',
                 'expires_at' => now()->addMinutes(15),
             ]
@@ -296,5 +297,45 @@ class DatabaseSeeder extends Seeder
                 'created_at' => now()->subDay(),
             ]
         );
+
+        $articles = [
+            [
+                'slug' => 'sejarah-pendirian-pg-candi-baru-1911',
+                'title' => 'Jejak Tahun 1911: Berdirinya PT Pabrik Gula Candi Baru di Delta Sidoarjo',
+                'category' => 'Arsip & Sejarah',
+                'author_name' => 'Tim Kurator Sejarah PG Candi Baru',
+                'excerpt' => 'Menelusuri awal mula pembangunan pabrik gula di Kecamatan Candi pada tahun 1911, tata ruang emplasemen kolonial, hingga perannya dalam menopang ekosistem tebu rakyat di Sidoarjo.',
+                'content' => "PT Pabrik Gula Candi Baru didirikan pada tahun 1911 di jantung wilayah agraris Kabupaten Sidoarjo, Jawa Timur. Kawasan delta Sungai Brantas yang subur dengan sistem irigasi teknis menjadikan wilayah Candi salah satu sentra perkebunan tebu terbaik sejak awal abad ke-20.\n\nBangunan utama pabrik dirancang dengan konstruksi baja Eropa dan dinding bata tebal berventilasi tinggi guna menjaga sirkulasi udara di sekitar stasiun gilingan serta ketel uap. Cerobong asap bata yang menjulang menjadi penanda orientasi geografis masyarakat sekitar selama lebih dari satu abad.\n\nMelalui pelestarian arsip dan program kunjungan edukasi GulaTour, generasi masa kini dapat mempelajari bagaimana transisi pengelolaan industri gula dari era kolonial menuju perusahaan agroindustri nasional tetap mempertahankan kearifan teknis serta kemitraan erat bersama petani tebu lokal.",
+                'reading_time_minutes' => 5,
+                'is_published' => true,
+                'published_at' => now()->subDays(10),
+            ],
+            [
+                'slug' => 'cara-kerja-stasiun-gilingan-dan-mesin-uap',
+                'title' => 'Harmoni Baja & Tekanan Uap: Mengenal Cara Kerja Stasiun Gilingan Klasik',
+                'category' => 'Teknologi Uap',
+                'author_name' => 'Divisi Teknik & Pemeliharaan PG Candi Baru',
+                'excerpt' => 'Bagaimana batang tebu diperah melalui rangkaian rol gilingan bertenaga uap hingga menghasilkan nira mentah yang siap dimurnikan menjadi kristal gula?',
+                'content' => "Salah satu daya tarik utama dalam kunjungan edukasi di PT Pabrik Gula Candi Baru adalah menyaksikan langsung Stasiun Gilingan yang memadukan mekanisme roda gila (flywheel) berdiameter besar dengan transmisi roda gigi presisi.\n\nProses dimulai ketika tebu dari emplasemen dimasukkan ke meja tebu dan dicacah menggunakan pisau pencacah (cane cutter) serta unigrator. Serat tebu yang telah terbuka kemudian melewati lima unit gilingan bertekanan tinggi secara berurutan untuk memisahkan nira dari ampas tebu (bagasse).\n\nMenariknya, ampas tebu hasil pemerahan tidak terbuang sia-sia, melainkan dimanfaatkan kembali sebagai bahan bakar utama ketel uap (boiler) pabrik—sebuah prinsip sirkular energi mandiri yang telah diterapkan sejak seabad silam.",
+                'reading_time_minutes' => 4,
+                'is_published' => true,
+                'published_at' => now()->subDays(5),
+            ],
+            [
+                'slug' => 'transformasi-emplasemen-dan-jalur-lori-tebu',
+                'title' => 'Jejak Rel Lori Tebu & Tradisi Buka Giling di Sidoarjo',
+                'category' => 'Budaya & Komunitas',
+                'author_name' => 'Tim Edukasi Heritage GulaTour',
+                'excerpt' => 'Tradisi tahunan pembukaan musim giling dan peran vital jaringan rel lori sebagai urat nadi pengangkutan tebu dari lahan petani menuju timbangan pabrik.',
+                'content' => "Setiap menjelang musim kemarau, kawasan PT Pabrik Gula Candi Baru bersiap menyambut momentum Buka Giling. Tradisi ini bukan sekadar agenda operasional produksi, melainkan perayaan budaya masyarakat sekitar pabrik dan para petani tebu mitra.\n\nDi halaman emplasemen, jalur rel lori berlebar sepur sempit menjadi saksi bisu bagaimana rangkaian gerbong tebu ditarik masuk menuju stasiun timbangan. Pada sesi kunjungan GulaTour, peserta diajak menyusuri alur kedatangan tebu ini sekaligus memahami standar kendali mutu rendemen sebelum tebu diolah di dalam pabrik.",
+                'reading_time_minutes' => 4,
+                'is_published' => true,
+                'published_at' => now()->subDays(2),
+            ],
+        ];
+
+        foreach ($articles as $articleData) {
+            Article::updateOrCreate(['slug' => $articleData['slug']], $articleData);
+        }
     }
 }

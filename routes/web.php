@@ -7,17 +7,20 @@ use App\Http\Controllers\OrderWebController;
 use App\Http\Controllers\PublicController;
 use Illuminate\Support\Facades\Route;
 
-// M1: Landing & Company Profile
+// M1: Landing, Company Profile & Heritage Articles
 Route::get('/', [PublicController::class, 'home'])->name('home');
 Route::get('/profil', [PublicController::class, 'profile'])->name('profile');
+Route::get('/profil/artikel', [PublicController::class, 'articles'])->name('articles.index');
+Route::get('/profil/artikel/{slug}', [PublicController::class, 'showArticle'])->name('articles.show');
 
-// Serve uploaded gallery images from storage/app/public/gallery even if Windows storage symlink is not active
-Route::get('/storage/gallery/{filename}', function (string $filename) {
-    $path = storage_path('app/public/gallery/' . basename($filename));
+// Serve uploaded gallery & article images from storage/app/public even if Windows storage symlink is not active
+Route::get('/storage/{folder}/{filename}', function (string $folder, string $filename) {
+    abort_unless(in_array($folder, ['gallery', 'articles'], true), 404);
+    $path = storage_path("app/public/{$folder}/" . basename($filename));
     abort_unless(is_file($path), 404);
 
     return response()->file($path);
-})->where('filename', '[A-Za-z0-9._-]+')->name('storage.gallery');
+})->where(['folder' => 'gallery|articles', 'filename' => '[A-Za-z0-9._-]+'])->name('storage.public');
 
 // M2 & M3: Event Catalog & 2-Step Schedule-First Booking Wizard
 Route::get('/events', [EventBookingController::class, 'index'])->name('events.index');
@@ -70,4 +73,11 @@ Route::prefix('admin')
         Route::get('/profile/gallery', fn () => redirect()->route('admin.profile.edit'));
         Route::post('/profile/gallery', [AdminDashboardController::class, 'storeGallery'])->name('profile.gallery.store');
         Route::delete('/profile/gallery/{galleryItem}', [AdminDashboardController::class, 'deleteGallery'])->name('profile.gallery.delete');
+
+        Route::get('/articles', [AdminDashboardController::class, 'articles'])->name('articles.index');
+        Route::get('/articles/create', [AdminDashboardController::class, 'editArticle'])->name('articles.create');
+        Route::post('/articles', [AdminDashboardController::class, 'saveArticle'])->name('articles.store');
+        Route::get('/articles/{article}/edit', [AdminDashboardController::class, 'editArticle'])->name('articles.edit');
+        Route::put('/articles/{article}', [AdminDashboardController::class, 'saveArticle'])->name('articles.update');
+        Route::delete('/articles/{article}', [AdminDashboardController::class, 'deleteArticle'])->name('articles.delete');
     });

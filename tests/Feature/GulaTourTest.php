@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\Article;
 use App\Models\AuditLog;
 use App\Models\Event;
 use App\Models\GalleryItem;
@@ -288,6 +289,36 @@ class GulaTourTest extends TestCase
         $createdGallery = GalleryItem::where('title', 'Lokomotif Uap Candi Baru')->firstOrFail();
         $this->assertNotNull($createdGallery->image_url);
         $this->assertStringStartsWith('/storage/gallery/', (string) $createdGallery->image_url);
+
+        // Public & Admin Article flow on /profil and /admin/articles
+        $article = Article::firstOrFail();
+        $this->get('/profil')
+            ->assertStatus(200)
+            ->assertSee($article->title);
+
+        $this->actingAs($admin)
+            ->get('/profil')
+            ->assertStatus(200)
+            ->assertSee('Edit Artikel Ini');
+
+        $this->get(route('articles.show', $article->slug))
+            ->assertStatus(200)
+            ->assertSee($article->title);
+
+        $updateArticleRes = $this->actingAs($admin)
+            ->put(route('admin.articles.update', $article), [
+                'title' => $article->title . ' (Diperbarui)',
+                'category' => 'Arsip & Sejarah',
+                'author_name' => 'Tim Kurator Sejarah PG Candi Baru',
+                'excerpt' => $article->excerpt,
+                'content' => $article->content,
+                'reading_time_minutes' => 5,
+                'is_published' => 1,
+                'cover_file' => UploadedFile::fake()->create('sampul-artikel.jpg', 150, 'image/jpeg'),
+            ]);
+        $updateArticleRes->assertRedirect(route('admin.articles.edit', $article));
+        $this->assertStringContainsString('(Diperbarui)', $article->fresh()->title);
+        $this->assertStringStartsWith('/storage/articles/', (string) $article->fresh()->cover_image);
 
         $this->assertGreaterThan(0, AuditLog::count());
     }
