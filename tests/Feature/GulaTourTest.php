@@ -430,5 +430,123 @@ class GulaTourTest extends TestCase
             ->assertSee('data-tilt-card', false)
             ->assertSee('id="heritage-jumbotron-viewport"', false);
     }
+
+    /**
+     * Verify Google OAuth & Extensible SSO lifecycle, auto-linking, admin guard, and phone synchronization.
+     */
+    public function test_google_oauth_and_sso_authentication_lifecycle(): void
+    {
+        // 1. Verify SSO buttons rendered on Login & Register views
+        $this->get('/login')
+            ->assertStatus(200)
+            ->assertSee('Masuk Cepat dengan Akun Google')
+            ->assertSee(route('auth.social.redirect', 'google'));
+
+        $this->get('/register')
+            ->assertStatus(200)
+            ->assertSee('Daftar Cepat dengan Akun Google')
+            ->assertSee(route('auth.social.redirect', 'google'));
+
+        // 2. Verify redirect endpoint
+        $redirectResponse = $this->get(route('auth.social.redirect', 'google'));
+        $this->assertTrue(
+            $redirectResponse->isRedirection(),
+            'Google OAuth redirect endpoint should respond with a redirect.'
+        );
+        $this->assertStringContainsString('accounts.google.com', (string) $redirectResponse->headers->get('Location'));
+
+        // 3. Create a guest order before social registration to verify auto-linking
+        $event = Event::where('status', 'active')->firstOrFail();
+        $schedule = $event->schedules->first(fn ($s) => $s->isAvailable());
+
+        $guestOrder = Order::create([
+            'order_code' => 'GT-20261105-GUESTSSO',
+            'access_token' => \Illuminate\Support\Str::random(40),
+            'schedule_id' => $schedule->id,
+            'user_id' => null,
+            'buyer_name' => 'Calon Wisatawan Google',
+            'buyer_email' => 'wisatawan.google@example.com',
+            'buyer_phone' => '081298765432',
+            'ticket_qty' => 2,
+            'unit_price' => $event->ticket_price,
+            'total_amount' => $event->ticket_price * 2,
+            'status' => 'pending',
+            'expires_at' => now()->addMinutes(15),
+        ]);
+
+        // 4. Simulate Google OAuth callback for a new visitor
+        $mockGoogleUser = \Mockery::mock(\Laravel\Socialite\Two\User::class);
+        $mockGoogleUser->shouldReceive('getId')->andReturn('google-sub-987654321');
+        $mockGoogleUser->shouldReceive('getEmail')->andReturn('wisatawan.google@example.com');
+        $mockGoogleUser->shouldReceive('getName')->andReturn('Wisatawan Google Candi');
+        $mockGoogleUser->shouldReceive('getAvatar')->andReturn('https://lh3.googleusercontent.com/avatar.jpg');
+
+        $mockProvider = \Mockery::mock(\Laravel\Socialite\Two\GoogleProvider::class);
+        $mockProvider->shouldReceive('user')->andReturn($mockGoogleUser);
+
+        \Laravel\Socialite\Facades\Socialite::shouldReceive('driver')
+            ->with('google')
+            ->once()
+            ->andReturn($mockProvider);
+
+        $callbackResponse = $this->get(route('auth.social.callback', 'google'));
+        $callbackResponse->assertRedirect(route('account.orders'));
+
+        // Assert user was created with visitor role and verified email
+        $createdUser = User::where('email', 'wisatawan.google@example.com')->first();
+        $this->assertNotNull($createdUser);
+        $this->assertSame('user', $createdUser->role);
+        $this->assertNull($createdUser->phone);
+        $this->assertNotNull($createdUser->email_verified_at);
+        $this->assertTrue($createdUser->hasProvider('google'));
+
+        // Assert connected account record exists
+        $connectedAccount = \App\Models\ConnectedAccount::where('user_id', $createdUser->id)->first();
+        $this->assertNotNull($connectedAccount);
+        $this->assertSame('google', $connectedAccount->provider);
+        $this->assertSame('google-sub-987654321', $connectedAccount->provider_user_id);
+        $this->assertSame('https://lh3.googleusercontent.com/avatar.jpg', $connectedAccount->avatar_url);
+
+        // Assert prior guest order is now automatically linked to this new user
+        $guestOrder->refresh();
+        $this->assertSame($createdUser->id, $guestOrder->user_id);
+
+        // 5. Simulate booking checkout: user's empty phone is automatically updated in their profile
+        /** @var \App\Services\BookingService $bookingService */
+        $bookingService = app(\App\Services\BookingService::class);
+        $bookingService->createOrder([
+            'schedule_id' => $schedule->id,
+            'quantity' => 1,
+            'buyer_name' => 'Wisatawan Google Candi',
+            'buyer_email' => 'wisatawan.google@example.com',
+            'buyer_phone' => '081234567890',
+            'user' => $createdUser,
+        ]);
+
+        $createdUser->refresh();
+        $this->assertSame('081234567890', $createdUser->phone, 'User phone should be synchronized from booking data.');
+
+        // 6. Test existing Admin login via Google: preserves admin role and redirects to /admin
+        $existingAdmin = User::where('role', 'admin')->firstOrFail();
+
+        $mockAdminGoogleUser = \Mockery::mock(\Laravel\Socialite\Two\User::class);
+        $mockAdminGoogleUser->shouldReceive('getId')->andReturn('google-admin-uid-111');
+        $mockAdminGoogleUser->shouldReceive('getEmail')->andReturn($existingAdmin->email);
+        $mockAdminGoogleUser->shouldReceive('getName')->andReturn('Administrator PG Candi');
+        $mockAdminGoogleUser->shouldReceive('getAvatar')->andReturn(null);
+
+        $mockAdminProvider = \Mockery::mock(\Laravel\Socialite\Two\GoogleProvider::class);
+        $mockAdminProvider->shouldReceive('user')->andReturn($mockAdminGoogleUser);
+
+        \Laravel\Socialite\Facades\Socialite::shouldReceive('driver')
+            ->with('google')
+            ->once()
+            ->andReturn($mockAdminProvider);
+
+        $adminCallback = $this->get(route('auth.social.callback', 'google'));
+        $adminCallback->assertRedirect(route('admin.dashboard'));
+        $this->assertAuthenticatedAs($existingAdmin);
+        $this->assertTrue($existingAdmin->hasProvider('google'));
+    }
 }
 

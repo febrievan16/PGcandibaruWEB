@@ -10,7 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
-#[Fillable(['supabase_uid', 'name', 'email', 'phone', 'role', 'api_token', 'password'])]
+#[Fillable(['supabase_uid', 'name', 'email', 'phone', 'role', 'api_token', 'email_verified_at', 'password'])]
 #[Hidden(['password', 'remember_token', 'api_token'])]
 class User extends Authenticatable
 {
@@ -46,5 +46,23 @@ class User extends Authenticatable
     public function orders(): HasMany
     {
         return $this->hasMany(Order::class);
+    }
+
+    /**
+     * Get the connected social/SSO accounts for the user.
+     *
+     * @return HasMany<ConnectedAccount, $this>
+     */
+    public function connectedAccounts(): HasMany
+    {
+        return $this->hasMany(ConnectedAccount::class);
+    }
+
+    /**
+     * Determine whether the user has linked a specific SSO provider.
+     */
+    public function hasProvider(string $provider): bool
+    {
+        return $this->connectedAccounts()->where('provider', $provider)->exists();
     }
 }

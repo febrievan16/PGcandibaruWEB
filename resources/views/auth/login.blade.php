@@ -25,32 +25,43 @@
                 </div>
             @endif
 
-            <form data-reveal="up" data-reveal-delay="110" action="{{ route('login.submit') }}" method="POST" class="heritage-card-interactive border border-[#E3D9C9] bg-[#FFFFFF] p-6 space-y-5">
-                @csrf
-                <div>
-                    <label for="email" class="block text-sm font-semibold text-[#2A211A] mb-1.5">Alamat Email</label>
-                    <input type="email" id="email" name="email" value="{{ old('email') }}" required autofocus class="input-heritage">
+            <div data-reveal="up" data-reveal-delay="110" class="heritage-card-interactive border border-[#E3D9C9] bg-[#FFFFFF] p-6 space-y-5">
+                <!-- Single Sign-On (Google via Firebase) -->
+                @include('auth.partials.firebase-google-auth', ['buttonText' => 'Masuk Cepat dengan Akun Google', 'idPrefix' => 'login'])
+
+                <div class="relative flex items-center justify-center">
+                    <div class="border-t border-[#E3D9C9] w-full"></div>
+                    <span class="bg-[#FFFFFF] px-3 text-xs text-[#6E635A] uppercase tracking-wider whitespace-nowrap">atau masuk dengan email</span>
+                    <div class="border-t border-[#E3D9C9] w-full"></div>
                 </div>
 
-                <div>
-                    <label for="password" class="block text-sm font-semibold text-[#2A211A] mb-1.5">Kata Sandi</label>
-                    <input type="password" id="password" name="password" required class="input-heritage">
-                </div>
+                <form action="{{ route('login.submit') }}" method="POST" class="space-y-4">
+                    @csrf
+                    <div>
+                        <label for="email" class="block text-sm font-semibold text-[#2A211A] mb-1.5">Alamat Email</label>
+                        <input type="email" id="email" name="email" value="{{ old('email') }}" required autofocus class="input-heritage">
+                    </div>
 
-                <div class="flex items-center justify-between text-xs text-[#6E635A]">
-                    <label class="inline-flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" name="remember" class="accent-[#6B3F1E]">
-                        <span>Ingat sesi saya</span>
-                    </label>
-                    <a href="{{ route('register') }}" class="link-heritage-tertiary">Belum punya akun? Daftar</a>
-                </div>
+                    <div>
+                        <label for="password" class="block text-sm font-semibold text-[#2A211A] mb-1.5">Kata Sandi</label>
+                        <input type="password" id="password" name="password" required class="input-heritage">
+                    </div>
 
-                <div class="pt-1">
-                    <button type="submit" class="btn-heritage-primary w-full">
-                        Masuk Sekarang
-                    </button>
-                </div>
-            </form>
+                    <div class="flex items-center justify-between text-xs text-[#6E635A]">
+                        <label class="inline-flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" name="remember" class="accent-[#6B3F1E]">
+                            <span>Ingat sesi saya</span>
+                        </label>
+                        <a href="{{ route('register') }}" class="link-heritage-tertiary">Belum punya akun? Daftar</a>
+                    </div>
+
+                    <div class="pt-1">
+                        <button type="submit" class="btn-heritage-primary w-full">
+                            Masuk Sekarang
+                        </button>
+                    </div>
+                </form>
+            </div>
 
             <!-- Demo Credentials Helper -->
             <div class="border border-[#E3D9C9] bg-[#F3EAD8] p-4 text-xs space-y-2">
