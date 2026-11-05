@@ -5,6 +5,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EventBookingController;
 use App\Http\Controllers\OrderWebController;
 use App\Http\Controllers\PublicController;
+use App\Http\Controllers\SocialAuthController;
 use Illuminate\Support\Facades\Route;
 
 // M1: Landing, Company Profile & Heritage Articles
@@ -42,6 +43,11 @@ Route::post('/login', [AuthController::class, 'login'])->name('login.submit');
 Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
 Route::post('/register', [AuthController::class, 'register'])->name('register.submit');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
+
+// Google OAuth & SSO Routes
+Route::post('/auth/firebase/session', [SocialAuthController::class, 'firebaseSession'])->name('auth.firebase.session');
+Route::get('/auth/{provider}/redirect', [SocialAuthController::class, 'redirect'])->name('auth.social.redirect');
+Route::get('/auth/{provider}/callback', [SocialAuthController::class, 'callback'])->name('auth.social.callback');
 
 Route::middleware('auth')->group(function (): void {
     Route::get('/akun/pesanan', [AuthController::class, 'myOrders'])->name('account.orders');

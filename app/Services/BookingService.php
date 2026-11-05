@@ -104,6 +104,11 @@ class BookingService
             $order->setRelation('schedule', $schedule);
             $order->setRelation('tickets', collect());
 
+            // Auto-update user's missing phone number from checkout data (e.g., for Google SSO users)
+            if ($data['user'] && empty($data['user']->phone) && ! empty($data['buyer_phone'])) {
+                $data['user']->update(['phone' => $data['buyer_phone']]);
+            }
+
             $this->midtransService->createSnapTransaction($order);
 
             AdminNotification::create([

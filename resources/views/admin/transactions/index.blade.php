@@ -534,7 +534,7 @@
                             <th class="py-3 px-4 font-semibold">Kode & Waktu</th>
                             <th class="py-3 px-4 font-semibold">Pemesan</th>
                             <th class="py-3 px-4 font-semibold">Event & Sesi</th>
-                            <th class="py-3 px-4 font-semibold">Deskripsi Lengkap Transaksi</th>
+                            <th class="py-3 px-4 font-semibold print:hidden">Deskripsi Lengkap Transaksi</th>
                             <th class="py-3 px-4 font-semibold text-right">Nominal & Metode</th>
                             <th class="py-3 px-4 font-semibold">Status</th>
                         </tr>
@@ -572,7 +572,7 @@
                                     </span>
                                 </td>
 
-                                <td class="py-4 px-4 text-xs text-[#2A211A] leading-relaxed max-w-[46ch]">
+                                <td class="py-4 px-4 text-xs text-[#2A211A] leading-relaxed max-w-[46ch] print:hidden">
                                     {{ $order->transactionDescription() }}
                                 </td>
 
@@ -855,10 +855,10 @@
             </table>
         </section>
 
-        <!-- BAGIAN V: DAFTAR RINCIAN & DESKRIPSI SETIAP TRANSAKSI -->
+        <!-- BAGIAN V: DAFTAR RINCIAN SETIAP TRANSAKSI -->
         <section class="report-doc-section space-y-2">
             <h3 class="font-serif text-sm font-bold uppercase tracking-wider text-[#1A1410]">
-                V. Rincian & Deskripsi Lengkap Setiap Transaksi ({{ $filteredOrders->count() }} Transaksi)
+                V. Rincian Setiap Transaksi ({{ $filteredOrders->count() }} Transaksi)
             </h3>
             <table class="report-doc-table tabular-nums">
                 <thead>
@@ -867,7 +867,6 @@
                         <th class="text-left">Kode & Waktu Order</th>
                         <th class="text-left">Pemesan</th>
                         <th class="text-left">Program Event & Sesi</th>
-                        <th class="text-left">Deskripsi Narasi Transaksi</th>
                         <th class="text-right">Qty & Kanal</th>
                         <th class="text-right">Total (IDR)</th>
                         <th class="text-center">Status</th>
@@ -889,7 +888,6 @@
                                 <strong>{{ $order->schedule?->event?->title ?? '-' }}</strong><br>
                                 <span class="text-[10px]">{{ $order->schedule?->tour_date?->format('Y-m-d') }} ({{ $order->schedule?->session_code }})</span>
                             </td>
-                            <td>{{ $order->transactionDescription() }}</td>
                             <td class="text-right whitespace-nowrap">
                                 {{ $order->ticket_qty }} Tiket<br>
                                 <span class="text-[10px] text-[#6E635A]">{{ $order->paymentChannelLabel() }}</span>
