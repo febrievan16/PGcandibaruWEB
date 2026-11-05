@@ -4,15 +4,9 @@
 
 @section('content')
     <section class="relative overflow-hidden py-14">
-        <div aria-hidden="true"
-             data-parallax-speed="-0.12"
-             class="heritage-watermark absolute top-6 right-6 text-[68px] sm:text-[124px]">
-            PORTAL RESMI
-        </div>
-
         <div class="relative z-10 max-w-[540px] mx-auto px-4 sm:px-6 space-y-6">
             <div data-reveal="up" class="border-b border-[#E3D9C9] pb-4 space-y-1">
-                <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold">Modul M5 &bull; Akun Opsional & Admin</span>
+                <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold">Portal Layanan &bull; Akses Akun</span>
                 <h1 class="font-serif text-3xl font-bold text-[#2A211A]">Masuk ke GulaTour</h1>
                 <p class="text-sm text-[#6E635A]">
                     Masuk untuk melihat riwayat pemesanan E-Ticket atau mengelola operasional sebagai Administrator. (Pengunjung tamu tetap dapat memesan tiket tanpa akun).
