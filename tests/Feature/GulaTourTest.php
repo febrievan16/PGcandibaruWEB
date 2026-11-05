@@ -407,14 +407,18 @@ class GulaTourTest extends TestCase
             $this->assertLessThanOrEqual($maxQueries, $queryCount, "Admin URI [{$uri}] executed {$queryCount} queries (expected <= {$maxQueries}).");
         }
 
-        // Verify monthly transaction report content & descriptions
+        // Verify monthly transaction report content, descriptions, and formal print document layout
         $this->actingAs($admin)
             ->get('/admin/transactions')
             ->assertStatus(200)
             ->assertSee('Peringkat Event Paling Sering Dipesan')
             ->assertSee('Grafik Tren Pendapatan & Penjualan Tiket Bulanan', false)
             ->assertSee('Ringkasan Akumulasi Transaksi dari Tiap Pemesan')
-            ->assertSee('Deskripsi Rinci Setiap Transaksi Pemesan');
+            ->assertSee('Deskripsi Rinci Setiap Transaksi Pemesan')
+            ->assertSee('id="formal-print-document"', false)
+            ->assertSee('LAPORAN BULANAN TRANSAKSI, REKAPITULASI PEMESAN & POPULARITAS EVENT', false)
+            ->assertSee('I. Ringkasan Eksekutif (Executive Summary)')
+            ->assertSee('Pratinjau Dokumen Cetak');
     }
 }
 

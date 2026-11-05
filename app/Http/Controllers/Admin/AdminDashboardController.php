@@ -30,7 +30,7 @@ class AdminDashboardController extends Controller
     /**
      * Render Admin Dashboard overview: revenue, order metrics, session occupancy, notifications, audit log (FR-11, FR-16).
      */
-    public function index(): View
+    public function index(Request $request): View
     {
         $metrics = Order::query()
             ->selectRaw("
@@ -51,6 +51,15 @@ class AdminDashboardController extends Controller
             ->orderBy('start_time')
             ->get();
 
+        $occupancyEvents = $schedules
+            ->pluck('event')
+            ->filter()
+            ->unique('id')
+            ->values();
+
+        $filterEventId = (string) $request->query('event_id', 'all');
+        $filterSessionStatus = (string) $request->query('session_status', 'all');
+
         $notifications = AdminNotification::query()
             ->latest('created_at')
             ->limit(8)
@@ -69,6 +78,9 @@ class AdminDashboardController extends Controller
             'pendingOrdersCount' => $pendingOrdersCount,
             'ticketsSoldCount' => $ticketsSoldCount,
             'schedules' => $schedules,
+            'occupancyEvents' => $occupancyEvents,
+            'filterEventId' => $filterEventId,
+            'filterSessionStatus' => $filterSessionStatus,
             'notifications' => $notifications,
             'unreadNotificationsCount' => $unreadNotificationsCount,
             'auditLogs' => $auditLogs,
