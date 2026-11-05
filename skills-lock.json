@@ -1,0 +1,35 @@
+{
+  "version": 1,
+  "skills": {
+    "agent-browser": {
+      "source": "vercel-labs/agent-browser",
+      "sourceType": "github",
+      "skillPath": "skills/agent-browser/SKILL.md",
+      "computedHash": "c05aa7e4c980954eb67fd89757cff008c9987b0df6a1624338fcfcb4ca4b02d5"
+    },
+    "deploying-to-cloud": {
+      "source": "febrievan16/PGcandibaruWEB",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/deploying-to-cloud/SKILL.md",
+      "computedHash": "4d27acdc1e7f50aeec65864c5effec8d1720c02eb34b069c7d51254899a61c83"
+    },
+    "frontend-design": {
+      "source": "anthropics/skills",
+      "sourceType": "github",
+      "skillPath": "skills/frontend-design/SKILL.md",
+      "computedHash": "106acf230014cbb43ca34e6410371321b56ca742f9ee0442e8ec05bf02eb0384"
+    },
+    "improve-codebase-architecture": {
+      "source": "mattpocock/skills",
+      "sourceType": "github",
+      "skillPath": "skills/engineering/improve-codebase-architecture/SKILL.md",
+      "computedHash": "11cfd9568d71445df710d5a9332c674ad773de0c9d5fc22d3ffa175bdd7d988b"
+    },
+    "infer-conventions": {
+      "source": "febrievan16/PGcandibaruWEB",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/infer-conventions/SKILL.md",
+      "computedHash": "61f49d8847b99b77e6a93888fdef5de2bcabdf8feded69fd110868d0faf2df76"
+    }
+  }
+}
