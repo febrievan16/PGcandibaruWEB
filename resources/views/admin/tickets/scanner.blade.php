@@ -55,10 +55,7 @@
                 </form>
 
                 <!-- Quick Test Helper for Valid Tickets -->
-                @php
-                    $sampleValidTickets = \App\Models\Ticket::with('order')->where('status', 'valid')->limit(4)->get();
-                @endphp
-                @if($sampleValidTickets->isNotEmpty())
+                @if(($sampleValidTickets ?? collect())->isNotEmpty())
                     <div class="pt-4 border-t border-[#E3D9C9] space-y-2">
                         <span class="text-xs uppercase tracking-wider text-[#6B3F1E] font-semibold block">
                             Tiket Aktif Siap Uji Scan (Klik untuk Mengisi):
@@ -69,7 +66,7 @@
                                         onclick="document.getElementById('code').value='{{ $sample->qr_payload }}';"
                                         class="w-full text-left p-2.5 text-xs border border-[#E3D9C9] bg-[#FAF6EE] hover:border-[#6B3F1E] cursor-pointer flex items-center justify-between">
                                     <span class="font-mono font-semibold text-[#2A211A]">{{ $sample->ticket_code }}</span>
-                                    <span class="text-[#6E635A]">{{ $sample->order->buyer_name }}</span>
+                                    <span class="text-[#6E635A]">{{ $sample->order->buyer_name ?? '-' }}</span>
                                 </button>
                             @endforeach
                         </div>

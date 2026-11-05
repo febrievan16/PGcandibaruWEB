@@ -231,33 +231,55 @@
             @else
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     @foreach($galleryItems as $item)
-                        <figure class="border border-[#E3D9C9] bg-[#FFFFFF] p-4 flex flex-col justify-between">
+                        @php
+                            $slides = $item->gallerySlides();
+                        @endphp
+                        <figure tabindex="0"
+                                role="button"
+                                aria-label="Buka pop-up koleksi foto {{ $item->title }} ({{ count($slides) }} foto)"
+                                data-gallery-trigger
+                                data-gallery-title="{{ $item->title }}"
+                                data-gallery-category="{{ $item->category }}"
+                                data-gallery-year="{{ $item->year_label ?? 'Arsip PG Candi Baru' }}"
+                                data-gallery-caption="{{ $item->caption }}"
+                                data-gallery-slides='@json($slides)'
+                                class="group border border-[#E3D9C9] bg-[#FFFFFF] p-4 flex flex-col justify-between cursor-pointer hover:border-[#6B3F1E] transition-colors">
                             <div>
                                 <div class="aspect-[16/9] bg-[#F3EAD8] border border-[#E3D9C9] overflow-hidden relative flex items-center justify-center">
-                                    @if($item->image_url)
-                                        <img src="{{ $item->image_url }}"
-                                             alt="{{ $item->title }}"
-                                             loading="lazy"
-                                             class="w-full h-full object-cover">
-                                    @else
-                                        <svg class="w-full h-full" viewBox="0 0 600 340" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="{{ $item->title }}">
-                                            <rect width="600" height="340" fill="#F3EAD8"/>
-                                            <rect x="24" y="24" width="552" height="292" fill="none" stroke="#A67C52" stroke-width="1.5"/>
-                                            <circle cx="300" cy="150" r="46" fill="none" stroke="#6B3F1E" stroke-width="4"/>
-                                            <circle cx="300" cy="150" r="10" fill="#C8A24A"/>
-                                            <line x1="254" y1="150" x2="346" y2="150" stroke="#6B3F1E" stroke-width="2"/>
-                                            <line x1="300" y1="104" x2="300" y2="196" stroke="#6B3F1E" stroke-width="2"/>
-                                            <text x="300" y="245" text-anchor="middle" fill="#6B3F1E" font-family="Georgia, serif" font-size="16" font-weight="bold">{{ $item->category }}</text>
-                                            <text x="300" y="270" text-anchor="middle" fill="#6E635A" font-family="sans-serif" font-size="12">{{ $item->year_label ?? 'Arsip PG Candi Baru' }}</text>
-                                        </svg>
-                                    @endif
+                                    <img src="{{ $slides[0]['url'] }}"
+                                         alt="{{ $item->title }}"
+                                         loading="lazy"
+                                         class="w-full h-full object-cover">
+
+                                    <!-- Multi-Photo Count Indicator Badge -->
+                                    <div class="absolute bottom-3 right-3 bg-[#2A211A]/90 text-[#FAF6EE] px-3 py-1 text-xs font-semibold tracking-wider flex items-center gap-1.5 border border-[#C8A24A]">
+                                        <span>Lihat {{ count($slides) }} Foto</span>
+                                        <span>&nearr;</span>
+                                    </div>
                                 </div>
+
+                                <!-- Mini Thumbnail Strip Preview -->
+                                @if(count($slides) > 1)
+                                    <div class="grid grid-cols-3 gap-2 pt-2">
+                                        @foreach(array_slice($slides, 0, 3) as $thumbIndex => $thumbSlide)
+                                            <div class="h-12 border border-[#E3D9C9] bg-[#FAF6EE] overflow-hidden">
+                                                <img src="{{ $thumbSlide['url'] }}"
+                                                     alt="{{ $thumbSlide['caption'] }}"
+                                                     loading="lazy"
+                                                     class="w-full h-full object-cover opacity-85 group-hover:opacity-100 transition-opacity">
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @endif
+
                                 <div class="pt-4 space-y-1.5">
                                     <div class="flex items-center justify-between text-xs text-[#A67C52] font-semibold uppercase tracking-wider">
                                         <span>{{ $item->category }}</span>
                                         <span>{{ $item->year_label }}</span>
                                     </div>
-                                    <h3 class="font-serif text-xl font-semibold text-[#2A211A]">{{ $item->title }}</h3>
+                                    <h3 class="font-serif text-xl font-semibold text-[#2A211A] group-hover:text-[#6B3F1E] transition-colors">
+                                        {{ $item->title }}
+                                    </h3>
                                     @if($item->caption)
                                         <p class="text-sm text-[#6E635A] leading-relaxed">{{ $item->caption }}</p>
                                     @endif
@@ -269,6 +291,202 @@
             @endif
         </div>
     </section>
+
+    <!-- Multi-Photo Gallery Lightbox Popup Modal -->
+    <div id="gallery-lightbox-modal"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="lightbox-title"
+         class="hidden fixed inset-0 z-50 bg-[#2A211A]/85 flex items-center justify-center p-4 sm:p-6">
+        <div class="bg-[#FAF6EE] border-2 border-[#6B3F1E] max-w-[960px] w-full max-h-[92vh] flex flex-col overflow-hidden">
+            <!-- Modal Top Bar -->
+            <div class="px-5 py-3.5 border-b border-[#E3D9C9] bg-[#FFFFFF] flex items-center justify-between gap-4">
+                <div>
+                    <div class="flex items-center gap-2 text-xs uppercase tracking-wider font-semibold text-[#A67C52]">
+                        <span id="lightbox-category">Arsip Sejarah</span>
+                        <span>&bull;</span>
+                        <span id="lightbox-year">1911</span>
+                        <span>&bull;</span>
+                        <span id="lightbox-counter" class="text-[#6B3F1E] tabular-nums">Foto 1 dari 3</span>
+                    </div>
+                    <h3 id="lightbox-title" class="font-serif text-xl sm:text-2xl font-bold text-[#2A211A] mt-0.5">
+                        Judul Dokumentasi
+                    </h3>
+                </div>
+                <button type="button"
+                        id="lightbox-close-btn"
+                        aria-label="Tutup pop-up galeri"
+                        class="btn-heritage-secondary text-xs py-1.5 px-3 min-h-[38px] shrink-0">
+                    Tutup &times;
+                </button>
+            </div>
+
+            <!-- Main Active Slide Viewer + Prev/Next Controls -->
+            <div class="p-4 sm:p-6 flex-1 overflow-y-auto space-y-4">
+                <div class="relative bg-[#FFFFFF] border border-[#E3D9C9] p-2">
+                    <div class="aspect-[16/9] bg-[#F3EAD8] overflow-hidden flex items-center justify-center">
+                        <img id="lightbox-main-image"
+                             src=""
+                             alt=""
+                             class="w-full h-full object-contain max-h-[52vh]">
+                    </div>
+
+                    <!-- Prev / Next Buttons -->
+                    <button type="button"
+                            id="lightbox-prev-btn"
+                            aria-label="Foto sebelumnya"
+                            class="absolute left-4 top-1/2 -translate-y-1/2 bg-[#FAF6EE]/95 border border-[#6B3F1E] text-[#2A211A] hover:bg-[#C8A24A] px-3.5 py-2 text-sm font-bold cursor-pointer min-h-[44px]">
+                        &larr; Sebelumnya
+                    </button>
+                    <button type="button"
+                            id="lightbox-next-btn"
+                            aria-label="Foto berikutnya"
+                            class="absolute right-4 top-1/2 -translate-y-1/2 bg-[#FAF6EE]/95 border border-[#6B3F1E] text-[#2A211A] hover:bg-[#C8A24A] px-3.5 py-2 text-sm font-bold cursor-pointer min-h-[44px]">
+                        Berikutnya &rarr;
+                    </button>
+                </div>
+
+                <!-- Active Slide Caption & Description -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 border-b border-[#E3D9C9] pb-3">
+                    <p id="lightbox-slide-caption" class="text-sm font-semibold text-[#6B3F1E]"></p>
+                    <p id="lightbox-description" class="text-xs text-[#6E635A]"></p>
+                </div>
+
+                <!-- Interactive Thumbnail Strip Inside Popup -->
+                <div>
+                    <span class="text-xs uppercase tracking-wider text-[#6E635A] font-semibold block mb-2">
+                        Daftar Foto Dalam Galeri Ini (Klik untuk Memilih):
+                    </span>
+                    <div id="lightbox-thumbnails" class="grid grid-cols-3 sm:grid-cols-5 gap-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    @push('scripts')
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const modal = document.getElementById('gallery-lightbox-modal');
+                const closeBtn = document.getElementById('lightbox-close-btn');
+                const prevBtn = document.getElementById('lightbox-prev-btn');
+                const nextBtn = document.getElementById('lightbox-next-btn');
+                const titleEl = document.getElementById('lightbox-title');
+                const categoryEl = document.getElementById('lightbox-category');
+                const yearEl = document.getElementById('lightbox-year');
+                const counterEl = document.getElementById('lightbox-counter');
+                const mainImg = document.getElementById('lightbox-main-image');
+                const slideCaptionEl = document.getElementById('lightbox-slide-caption');
+                const descEl = document.getElementById('lightbox-description');
+                const thumbsContainer = document.getElementById('lightbox-thumbnails');
+
+                let activeSlides = [];
+                let currentIndex = 0;
+
+                function renderActiveSlide(index) {
+                    if (!activeSlides.length) return;
+                    currentIndex = (index + activeSlides.length) % activeSlides.length;
+                    const slide = activeSlides[currentIndex];
+
+                    mainImg.src = slide.url;
+                    mainImg.alt = slide.caption || '';
+                    slideCaptionEl.textContent = slide.caption || '';
+                    counterEl.textContent = 'Foto ' + (currentIndex + 1) + ' dari ' + activeSlides.length;
+
+                    const showNav = activeSlides.length > 1;
+                    prevBtn.style.display = showNav ? 'inline-flex' : 'none';
+                    nextBtn.style.display = showNav ? 'inline-flex' : 'none';
+
+                    // Highlight active thumbnail
+                    const thumbButtons = thumbsContainer.querySelectorAll('[data-thumb-index]');
+                    thumbButtons.forEach(function (btn, idx) {
+                        if (idx === currentIndex) {
+                            btn.classList.add('border-2', 'border-[#6B3F1E]', 'bg-[#F3EAD8]');
+                            btn.classList.remove('border-[#E3D9C9]', 'opacity-65');
+                        } else {
+                            btn.classList.remove('border-2', 'border-[#6B3F1E]', 'bg-[#F3EAD8]');
+                            btn.classList.add('border-[#E3D9C9]', 'opacity-65');
+                        }
+                    });
+                }
+
+                function openGalleryModal(card) {
+                    try {
+                        activeSlides = JSON.parse(card.getAttribute('data-gallery-slides') || '[]');
+                    } catch (e) {
+                        activeSlides = [];
+                    }
+                    if (!activeSlides.length) return;
+
+                    titleEl.textContent = card.getAttribute('data-gallery-title') || '';
+                    categoryEl.textContent = card.getAttribute('data-gallery-category') || '';
+                    yearEl.textContent = card.getAttribute('data-gallery-year') || '';
+                    descEl.textContent = card.getAttribute('data-gallery-caption') || '';
+
+                    thumbsContainer.innerHTML = '';
+                    activeSlides.forEach(function (slide, idx) {
+                        const btn = document.createElement('button');
+                        btn.type = 'button';
+                        btn.setAttribute('data-thumb-index', idx);
+                        btn.className = 'p-1 border cursor-pointer transition-all text-left';
+                        btn.innerHTML = '<div class="aspect-[16/10] overflow-hidden bg-[#FAF6EE]"><img src="' + slide.url + '" alt="Slide ' + (idx + 1) + '" class="w-full h-full object-cover"></div>' +
+                            '<span class="block text-[11px] font-semibold text-[#2A211A] mt-1 tabular-nums">Foto #' + (idx + 1) + '</span>';
+                        btn.addEventListener('click', function () {
+                            renderActiveSlide(idx);
+                        });
+                        thumbsContainer.appendChild(btn);
+                    });
+
+                    renderActiveSlide(0);
+                    modal.classList.remove('hidden');
+                    document.body.style.overflow = 'hidden';
+                }
+
+                function closeGalleryModal() {
+                    modal.classList.add('hidden');
+                    document.body.style.overflow = '';
+                }
+
+                document.querySelectorAll('[data-gallery-trigger]').forEach(function (card) {
+                    card.addEventListener('click', function () {
+                        openGalleryModal(card);
+                    });
+                    card.addEventListener('keydown', function (e) {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            openGalleryModal(card);
+                        }
+                    });
+                });
+
+                if (closeBtn) {
+                    closeBtn.addEventListener('click', closeGalleryModal);
+                }
+                if (prevBtn) {
+                    prevBtn.addEventListener('click', function () {
+                        renderActiveSlide(currentIndex - 1);
+                    });
+                }
+                if (nextBtn) {
+                    nextBtn.addEventListener('click', function () {
+                        renderActiveSlide(currentIndex + 1);
+                    });
+                }
+                if (modal) {
+                    modal.addEventListener('click', function (e) {
+                        if (e.target === modal) {
+                            closeGalleryModal();
+                        }
+                    });
+                }
+                document.addEventListener('keydown', function (e) {
+                    if (!modal || modal.classList.contains('hidden')) return;
+                    if (e.key === 'Escape') closeGalleryModal();
+                    if (e.key === 'ArrowLeft') renderActiveSlide(currentIndex - 1);
+                    if (e.key === 'ArrowRight') renderActiveSlide(currentIndex + 1);
+                });
+            });
+        </script>
+    @endpush
 
     <!-- 4. Contact & Location Details (FR-01) -->
     <section id="kontak-lokasi" class="py-12 lg:py-16">

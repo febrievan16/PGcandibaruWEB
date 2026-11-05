@@ -12,15 +12,30 @@ use Illuminate\View\View;
 class PublicController extends Controller
 {
     /**
+     * Summary columns for article listings (avoids fetching longText `content` on index views).
+     *
+     * @var list<string>
+     */
+    protected const ARTICLE_LIST_COLUMNS = [
+        'id',
+        'slug',
+        'title',
+        'category',
+        'author_name',
+        'excerpt',
+        'cover_image',
+        'reading_time_minutes',
+        'is_published',
+        'published_at',
+        'created_at',
+    ];
+
+    /**
      * Render the Heritage Editorial landing page (M1 + M2 preview).
      */
     public function home(): View
     {
-        $profile = CompanyProfile::first();
-        $galleryItems = GalleryItem::where('is_active', true)
-            ->orderBy('sort_order')
-            ->limit(4)
-            ->get();
+        $profile = CompanyProfile::current();
 
         $events = Event::with(['schedules' => function ($query): void {
             $query->whereDate('tour_date', '>=', today()->toDateString())
@@ -28,12 +43,11 @@ class PublicController extends Controller
                 ->orderBy('start_time');
         }])
             ->where('status', 'active')
-            ->latest()
+            ->latest('id')
             ->get();
 
         return view('pages.home', [
             'profile' => $profile,
-            'galleryItems' => $galleryItems,
             'events' => $events,
         ]);
     }
@@ -43,12 +57,16 @@ class PublicController extends Controller
      */
     public function profile(): View
     {
-        $profile = CompanyProfile::first();
+        $profile = CompanyProfile::current();
         $galleryItems = GalleryItem::where('is_active', true)
             ->orderBy('sort_order')
             ->get();
 
-        $articlesQuery = Article::latest('published_at')->latest('id');
+        $articlesQuery = Article::query()
+            ->select(self::ARTICLE_LIST_COLUMNS)
+            ->latest('published_at')
+            ->latest('id');
+
         if (! Auth::user()?->isAdmin()) {
             $articlesQuery->where('is_published', true);
         }
@@ -66,15 +84,16 @@ class PublicController extends Controller
      */
     public function articles(): View
     {
-        $profile = CompanyProfile::first();
-        $query = Article::latest('published_at')->latest('id');
+        $query = Article::query()
+            ->select(self::ARTICLE_LIST_COLUMNS)
+            ->latest('published_at')
+            ->latest('id');
 
         if (! Auth::user()?->isAdmin()) {
             $query->where('is_published', true);
         }
 
         return view('articles.index', [
-            'profile' => $profile,
             'articles' => $query->get(),
         ]);
     }
@@ -91,7 +110,9 @@ class PublicController extends Controller
 
         $article = $query->firstOrFail();
 
-        $relatedArticles = Article::where('is_published', true)
+        $relatedArticles = Article::query()
+            ->select(['id', 'slug', 'title', 'category', 'published_at'])
+            ->where('is_published', true)
             ->where('id', '!=', $article->id)
             ->latest('published_at')
             ->limit(3)

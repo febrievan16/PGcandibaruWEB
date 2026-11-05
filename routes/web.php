@@ -19,7 +19,9 @@ Route::get('/storage/{folder}/{filename}', function (string $folder, string $fil
     $path = storage_path("app/public/{$folder}/" . basename($filename));
     abort_unless(is_file($path), 404);
 
-    return response()->file($path);
+    return response()->file($path, [
+        'Cache-Control' => 'public, max-age=31536000, immutable',
+    ]);
 })->where(['folder' => 'gallery|articles', 'filename' => '[A-Za-z0-9._-]+'])->name('storage.public');
 
 // M2 & M3: Event Catalog & 2-Step Schedule-First Booking Wizard
@@ -55,6 +57,7 @@ Route::prefix('admin')
 
         Route::get('/orders', [AdminDashboardController::class, 'orders'])->name('orders.index');
         Route::post('/orders/{order}/status', [AdminDashboardController::class, 'updateOrderStatus'])->name('orders.status');
+        Route::get('/transactions', [AdminDashboardController::class, 'transactions'])->name('transactions.index');
 
         Route::get('/events', [AdminDashboardController::class, 'events'])->name('events.index');
         Route::get('/events/create', [AdminDashboardController::class, 'editEvent'])->name('events.create');
@@ -72,6 +75,7 @@ Route::prefix('admin')
         Route::put('/profile', [AdminDashboardController::class, 'updateProfile'])->name('profile.update');
         Route::get('/profile/gallery', fn () => redirect()->route('admin.profile.edit'));
         Route::post('/profile/gallery', [AdminDashboardController::class, 'storeGallery'])->name('profile.gallery.store');
+        Route::post('/profile/gallery/{galleryItem}/photos', [AdminDashboardController::class, 'addGalleryPhotos'])->name('profile.gallery.photos.store');
         Route::delete('/profile/gallery/{galleryItem}', [AdminDashboardController::class, 'deleteGallery'])->name('profile.gallery.delete');
 
         Route::get('/articles', [AdminDashboardController::class, 'articles'])->name('articles.index');

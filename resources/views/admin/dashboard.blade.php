@@ -5,6 +5,9 @@
 @section('page_subtitle', 'Modul M6 • Pantau metrik penjualan tiket, tingkat keterisian sesi, notifikasi baru, dan log audit.')
 
 @section('header_actions')
+    <a href="{{ route('admin.transactions.index') }}" class="btn-heritage-secondary text-xs py-2 px-3">
+        Laporan Transaksi Bulanan
+    </a>
     <a href="{{ route('api.v1.admin.orders', ['export' => 'csv']) }}" class="btn-heritage-secondary text-xs py-2 px-3">
         Ekspor Laporan CSV
     </a>

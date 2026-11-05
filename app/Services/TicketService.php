@@ -19,7 +19,10 @@ class TicketService
     public function issueTicketsForOrder(Order $order): Collection
     {
         return DB::transaction(function () use ($order): Collection {
-            $existing = $order->tickets()->get();
+            $existing = $order->relationLoaded('tickets')
+                ? $order->tickets
+                : $order->tickets()->get();
+
             if ($existing->count() >= $order->ticket_qty) {
                 return $existing;
             }
@@ -112,7 +115,7 @@ class TicketService
             'valid' => true,
             'code' => 'CHECKIN_SUCCESS',
             'message' => "Tiket {$ticket->ticket_code} berhasil divalidasi dan check-in tercatat.",
-            'ticket' => $ticket->fresh(['order.schedule.event']),
+            'ticket' => $ticket,
         ];
     }
 

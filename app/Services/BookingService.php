@@ -35,9 +35,11 @@ class BookingService
         $idempotencyKey = ! empty($data['idempotency_key']) ? trim((string) $data['idempotency_key']) : null;
 
         if ($idempotencyKey !== null) {
-            $existingOrder = Order::where('idempotency_key', $idempotencyKey)->first();
+            $existingOrder = Order::with(['schedule.event', 'tickets'])
+                ->where('idempotency_key', $idempotencyKey)
+                ->first();
             if ($existingOrder !== null) {
-                return $existingOrder->load(['schedule.event', 'tickets']);
+                return $existingOrder;
             }
         }
 
@@ -99,6 +101,9 @@ class BookingService
                 'expires_at' => now()->addMinutes($expiryMinutes),
             ]);
 
+            $order->setRelation('schedule', $schedule);
+            $order->setRelation('tickets', collect());
+
             $this->midtransService->createSnapTransaction($order);
 
             AdminNotification::create([
@@ -109,7 +114,7 @@ class BookingService
                 'is_read' => false,
             ]);
 
-            return $order->fresh(['schedule.event', 'tickets']);
+            return $order;
         });
     }
 

@@ -186,7 +186,7 @@ class GulaTourTest extends TestCase
      */
     public function test_order_access_isolation_for_guest_and_registered_user(): void
     {
-        $paidOrder = Order::where('status', 'paid')->firstOrFail();
+        $paidOrder = Order::where('status', 'paid')->whereNotNull('user_id')->firstOrFail();
 
         // Guest without token -> 403
         $this->getJson("/api/v1/orders/{$paidOrder->order_code}")
@@ -275,20 +275,29 @@ class GulaTourTest extends TestCase
             ->assertSee($validTicket->ticket_code)
             ->assertSee('TICKET_ALREADY_USED');
 
-        // Admin gallery creation with JPG/PNG file upload
+        // Admin gallery creation with multiple JPG/PNG file uploads & appending additional photos
         Storage::fake('public');
-        $fakePng = UploadedFile::fake()->create('lokomotif-candi-baru.png', 120, 'image/png');
+        $fakePng1 = UploadedFile::fake()->create('lokomotif-1.png', 120, 'image/png');
+        $fakeJpg2 = UploadedFile::fake()->create('lokomotif-2.jpg', 120, 'image/jpeg');
         $galleryPost = $this->actingAs($admin)
             ->from(route('admin.profile.edit'))
             ->post(route('admin.profile.gallery.store'), [
                 'title' => 'Lokomotif Uap Candi Baru',
                 'category' => 'Arsip Sejarah',
-                'image_file' => $fakePng,
+                'image_files' => [$fakePng1, $fakeJpg2],
             ]);
         $galleryPost->assertRedirect(route('admin.profile.edit'));
         $createdGallery = GalleryItem::where('title', 'Lokomotif Uap Candi Baru')->firstOrFail();
         $this->assertNotNull($createdGallery->image_url);
-        $this->assertStringStartsWith('/storage/gallery/', (string) $createdGallery->image_url);
+        $this->assertCount(2, $createdGallery->gallerySlides());
+
+        $fakePng3 = UploadedFile::fake()->create('lokomotif-3.png', 120, 'image/png');
+        $appendPost = $this->actingAs($admin)
+            ->post(route('admin.profile.gallery.photos.store', $createdGallery), [
+                'image_files' => [$fakePng3],
+            ]);
+        $appendPost->assertRedirect();
+        $this->assertCount(3, $createdGallery->fresh()->gallerySlides());
 
         // Public & Admin Article flow on /profil and /admin/articles
         $article = Article::firstOrFail();
@@ -321,6 +330,91 @@ class GulaTourTest extends TestCase
         $this->assertStringStartsWith('/storage/articles/', (string) $article->fresh()->cover_image);
 
         $this->assertGreaterThan(0, AuditLog::count());
+    }
+
+    /**
+     * Performance & N+1 Audit: Verify every public, user, and admin page renders with zero lazy-loading (N+1) and minimal SQL queries.
+     */
+    public function test_all_pages_render_without_n_plus_one_or_lazy_loading_and_within_query_budget(): void
+    {
+        \Illuminate\Database\Eloquent\Model::preventLazyLoading(true);
+
+        // Verify CompanyProfile::current() works with database cache driver (serializable_classes = false)
+        config(['cache.default' => 'database']);
+        \Illuminate\Support\Facades\Cache::forget(\App\Models\CompanyProfile::CACHE_KEY);
+        $firstCall = \App\Models\CompanyProfile::current();
+        $secondCall = \App\Models\CompanyProfile::current();
+        $this->assertInstanceOf(\App\Models\CompanyProfile::class, $firstCall);
+        $this->assertInstanceOf(\App\Models\CompanyProfile::class, $secondCall);
+        $this->assertEquals($firstCall->company_name, $secondCall->company_name);
+        config(['cache.default' => 'array']);
+
+        $admin = User::where('role', 'admin')->firstOrFail();
+        $regularUser = User::where('role', 'user')->firstOrFail();
+        $event = Event::where('slug', 'tour-pabrik-candi-baru')->firstOrFail();
+        $article = Article::firstOrFail();
+        $paidOrder = Order::where('status', 'paid')->firstOrFail();
+
+        // Warm company profile cache once, then verify public pages
+        $publicRoutes = [
+            '/',
+            '/profil',
+            '/profil/artikel',
+            '/profil/artikel/' . $article->slug,
+            '/events',
+            '/events/' . $event->slug,
+            '/orders/lookup',
+            "/orders/{$paidOrder->order_code}?token={$paidOrder->access_token}",
+            "/orders/{$paidOrder->order_code}/e-ticket?token={$paidOrder->access_token}",
+        ];
+
+        foreach ($publicRoutes as $uri) {
+            \Illuminate\Support\Facades\DB::flushQueryLog();
+            \Illuminate\Support\Facades\DB::enableQueryLog();
+
+            $this->get($uri)->assertStatus(200);
+
+            $queryCount = count(\Illuminate\Support\Facades\DB::getQueryLog());
+            $this->assertLessThanOrEqual(6, $queryCount, "Public URI [{$uri}] executed {$queryCount} queries (expected <= 6).");
+        }
+
+        // Verify Registered User Order History page (/akun/pesanan)
+        \Illuminate\Support\Facades\DB::flushQueryLog();
+        \Illuminate\Support\Facades\DB::enableQueryLog();
+        $this->actingAs($regularUser)->get('/akun/pesanan')->assertStatus(200);
+        $this->assertLessThanOrEqual(4, count(\Illuminate\Support\Facades\DB::getQueryLog()));
+
+        // Verify Admin routes (especially /admin/events where canBeActivated() runs in a loop, and /admin/orders master-detail)
+        $adminRoutes = [
+            '/admin' => 7,
+            '/admin/transactions' => 4,
+            '/admin/orders' => 7,
+            '/admin/events' => 2,
+            '/admin/events/' . $event->id . '/edit' => 3,
+            '/admin/tickets/scanner' => 6,
+            '/admin/profile' => 3,
+            '/admin/articles' => 2,
+            '/admin/articles/' . $article->id . '/edit' => 2,
+        ];
+
+        foreach ($adminRoutes as $uri => $maxQueries) {
+            \Illuminate\Support\Facades\DB::flushQueryLog();
+            \Illuminate\Support\Facades\DB::enableQueryLog();
+
+            $this->actingAs($admin)->get($uri)->assertStatus(200);
+
+            $queryCount = count(\Illuminate\Support\Facades\DB::getQueryLog());
+            $this->assertLessThanOrEqual($maxQueries, $queryCount, "Admin URI [{$uri}] executed {$queryCount} queries (expected <= {$maxQueries}).");
+        }
+
+        // Verify monthly transaction report content & descriptions
+        $this->actingAs($admin)
+            ->get('/admin/transactions')
+            ->assertStatus(200)
+            ->assertSee('Peringkat Event Paling Sering Dipesan')
+            ->assertSee('Grafik Tren Pendapatan & Penjualan Tiket Bulanan', false)
+            ->assertSee('Ringkasan Akumulasi Transaksi dari Tiap Pemesan')
+            ->assertSee('Deskripsi Rinci Setiap Transaksi Pemesan');
     }
 }
 
