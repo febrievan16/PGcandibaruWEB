@@ -9,14 +9,7 @@
     @endphp
 
     <!-- Interactive Heritage Jumbotron Slider with Multi-Layer Parallax (7/12 Archival Visual + 5/12 Narrative) -->
-    <section data-parallax-scene class="relative overflow-hidden border-b border-[#E3D9C9] bg-[#FAF6EE]">
-        <!-- Subtle Parallax Archival Watermark in Background -->
-        <div aria-hidden="true"
-             data-parallax-speed="-0.14"
-             class="heritage-watermark absolute top-6 right-6 text-[76px] sm:text-[136px] lg:text-[172px]">
-            CANDI BARU 1911
-        </div>
-
+    <section data-parallax-scene data-parallax-speed="-0.02" class="relative overflow-hidden border-b border-[#E3D9C9] bg-[#FAF6EE]">
         <div class="relative z-10 max-w-[1200px] mx-auto px-4 sm:px-6 py-10 lg:py-16">
             <!-- Top Jumbotron Header Bar & Slide Controls -->
             <div data-reveal="down" class="flex flex-wrap items-center justify-between gap-4 pb-5 mb-6 border-b border-[#E3D9C9]">
@@ -289,15 +282,8 @@
         </div>
     </section>
 
-    <!-- M2: Active Event Catalog & Uniform Pricing Table (List Layout per DESIGN.md §6) -->
+    <!-- Active Event Catalog & Uniform Pricing Table -->
     <section id="jadwal-event" class="relative overflow-hidden border-b border-[#E3D9C9] py-14 lg:py-20">
-        <!-- Parallax Background Watermark -->
-        <div aria-hidden="true"
-             data-parallax-speed="0.12"
-             class="heritage-watermark absolute top-12 left-4 text-[68px] sm:text-[128px]">
-            STASIUN GILING
-        </div>
-
         <div class="relative z-10 max-w-[1200px] mx-auto px-4 sm:px-6">
             <div data-reveal="up" class="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-8 border-b border-[#E3D9C9]">
                 <div>
@@ -413,22 +399,16 @@
     <!-- M1 Summary: Editorial History & Vision-Mission Columns (No Cards per DESIGN.md §8) -->
     @if($profile)
         <section class="relative overflow-hidden py-14 lg:py-20 border-b border-[#E3D9C9]">
-            <div aria-hidden="true"
-                 data-parallax-speed="-0.11"
-                 class="heritage-watermark absolute bottom-8 right-6 text-[68px] sm:text-[124px]">
-                WARISAN NUSANTARA
-            </div>
-
             <div class="relative z-10 max-w-[1200px] mx-auto px-4 sm:px-6">
                 <div class="grid grid-cols-1 lg:grid-cols-12 gap-10">
-                    <div data-reveal="left" class="lg:col-span-6 space-y-4">
+                    <div class="lg:col-span-6 space-y-4">
                         <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold">
-                            Sekilas Sejarah (Berdiri <span data-count-up="{{ $profile->established_year }}" data-count-from="1880" class="tabular-nums">{{ $profile->established_year }}</span>)
+                            Sekilas Sejarah (Berdiri <span class="tabular-nums font-semibold">{{ $profile->established_year }}</span>)
                         </span>
                         <h2 class="font-serif text-3xl font-semibold text-[#2A211A]">{{ $profile->company_name }}</h2>
-                        <div data-reveal-stagger="90" class="space-y-4 text-base text-[#2A211A] leading-relaxed max-w-[65ch]">
+                        <div class="space-y-4 text-base text-[#2A211A] leading-relaxed max-w-[65ch]">
                             @foreach(explode("\n\n", $profile->history) as $paragraph)
-                                <p data-reveal="up">{{ $paragraph }}</p>
+                                <p>{{ $paragraph }}</p>
                             @endforeach
                         </div>
                         <div class="pt-2">

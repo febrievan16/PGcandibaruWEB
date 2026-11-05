@@ -4,18 +4,12 @@
 
 @section('content')
     <section class="relative overflow-hidden py-12">
-        <div aria-hidden="true"
-             data-parallax-speed="-0.12"
-             class="heritage-watermark absolute top-6 right-6 text-[68px] sm:text-[124px]">
-            TIKET RESMI
-        </div>
-
         <div class="relative z-10 max-w-[1200px] mx-auto px-4 sm:px-6 space-y-8">
             <!-- Header & Explicit Status Label + Color (DESIGN.md §4 & §12) -->
             <div data-reveal="up" class="border-b border-[#E3D9C9] pb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold">
-                        Modul M4 &bull; Rincian Pemesanan & Pembayaran
+                        Layanan Tiket Resmi &bull; Rincian Pemesanan
                     </span>
                     <h1 class="font-serif text-3xl sm:text-4xl font-bold text-[#2A211A] mt-1 tabular-nums">
                         Order #{{ $order->order_code }}
@@ -37,7 +31,7 @@
                             <div class="border-b border-[#E3D9C9] pb-4 flex flex-wrap items-center justify-between gap-2">
                                 <div>
                                     <span class="text-xs uppercase tracking-wider text-[#B8860B] font-semibold block">
-                                        Menunggu Pembayaran Online (DEC-002)
+                                        Menunggu Pembayaran Online
                                     </span>
                                     <h2 class="font-serif text-2xl font-bold text-[#2A211A]">
                                         Selesaikan Pembayaran via Midtrans
@@ -163,7 +157,7 @@
 
                             <div data-reveal-stagger="110" class="space-y-4">
                                 @foreach($order->tickets as $idx => $ticket)
-                                    <div data-reveal="up" data-tilt-card data-tilt-max="1.8" class="heritage-card-interactive border border-[#E3D9C9] bg-[#FAF6EE] p-4 flex flex-col sm:flex-row items-center justify-between gap-6">
+                                    <div data-reveal="up" class="border border-[#E3D9C9] bg-[#FAF6EE] p-4 flex flex-col sm:flex-row items-center justify-between gap-6">
                                         <div class="space-y-2 flex-1">
                                             <div class="flex items-center gap-2 text-xs">
                                                 <span class="font-semibold uppercase tracking-wider text-[#6B3F1E]">

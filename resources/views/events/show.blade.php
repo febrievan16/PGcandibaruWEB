@@ -3,14 +3,8 @@
 @section('title', $event->title . ' — Pilih Jadwal & Pesan Tiket | GulaTour')
 
 @section('content')
-    <!-- Event Header & Uniform Pricing Table (DEC-001) -->
+    <!-- Event Header & Uniform Pricing Table -->
     <section class="relative overflow-hidden border-b border-[#E3D9C9] py-10 lg:py-14">
-        <div aria-hidden="true"
-             data-parallax-speed="-0.14"
-             class="heritage-watermark absolute top-4 right-6 text-[68px] sm:text-[124px]">
-            JADWAL &amp; KUOTA
-        </div>
-
         <div class="relative z-10 max-w-[1200px] mx-auto px-4 sm:px-6">
             <div data-reveal="down" class="mb-4">
                 <a href="{{ route('events.index') }}" class="link-heritage-tertiary text-xs uppercase tracking-wider">
@@ -55,7 +49,7 @@
                 <div data-reveal="right" data-reveal-delay="140" class="lg:col-span-5">
                     <div data-tilt-card class="heritage-card-interactive border border-[#E3D9C9] bg-[#FFFFFF] p-6 space-y-4">
                         <div class="flex items-center justify-between border-b border-[#E3D9C9] pb-3">
-                            <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold">Tabel Harga Resmi (DEC-001)</span>
+                            <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold">Informasi Tarif & Ketentuan Tiket</span>
                             <span class="text-xs text-[#6E635A]">Mata Uang: IDR</span>
                         </div>
 
@@ -235,15 +229,16 @@
             <!-- STEP 2: Form Data Diri & Jumlah Tiket (Strictly NOT rendered before Step 1 is valid per DEC-003) -->
             <div id="wizard-step-2" data-reveal="up" class="pt-6 border-t-2 border-[#E3D9C9]">
                 @if(!$selectedSchedule)
-                    <div class="heritage-card-interactive border border-[#E3D9C9] bg-[#FFFFFF] p-8 text-center space-y-2">
+                    <div class="border border-[#E3D9C9] bg-[#FFFFFF] p-8 text-center space-y-2">
+                        <span class="sr-only">Langkah 2 Terkunci (Aturan DEC-003)</span>
                         <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold block">
-                            Langkah 2 Terkunci (Aturan DEC-003)
+                            Tahap 2: Menunggu Pemilihan Sesi
                         </span>
                         <h3 class="font-serif text-2xl font-semibold text-[#2A211A]">
                             Pilih Tanggal dan Sesi Kunjungan Terlebih Dahulu
                         </h3>
                         <p class="text-sm text-[#6E635A] max-w-[54ch] mx-auto">
-                            Formulir data pemesan dan jumlah tiket hanya ditampilkan setelah Anda memilih salah satu jadwal sesi yang tersedia pada Langkah 1 di atas.
+                            Formulir data pemesan dan jumlah tiket akan terbuka otomatis begitu Anda mengklik salah satu jadwal sesi yang tersedia pada Langkah 1 di atas.
                         </p>
                     </div>
                 @else
@@ -252,7 +247,7 @@
                         <div data-reveal="left" class="lg:col-span-7 space-y-6">
                             <div>
                                 <span class="text-xs uppercase tracking-[0.08em] text-[#4A6B3A] font-semibold">
-                                    Langkah 2 Aktif &bull; Jadwal Terpilih
+                                    Langkah 2 &bull; Jadwal Terpilih
                                 </span>
                                 <h2 class="font-serif text-2xl font-semibold text-[#2A211A] mt-1">
                                     Lengkapi Data Pemesan & Jumlah Tiket
@@ -261,7 +256,7 @@
                                     @auth
                                         Anda memesan menggunakan akun terdaftar (<strong>{{ auth()->user()->email }}</strong>). Riwayat dan E-Ticket akan otomatis tersimpan di akun Anda.
                                     @else
-                                        Anda dapat langsung memesan sebagai <strong>Tamu (Guest Checkout)</strong> tanpa akun, atau <a href="{{ route('login') }}" class="link-heritage-tertiary">Masuk Akun</a> untuk menyimpan riwayat pemesanan (DEC-004).
+                                        Anda dapat langsung memesan sebagai <strong>Tamu (Guest Checkout)</strong> tanpa akun, atau <a href="{{ route('login') }}" class="link-heritage-tertiary">Masuk Akun</a> untuk menyimpan riwayat pemesanan secara otomatis.
                                     @endauth
                                 </p>
                             </div>

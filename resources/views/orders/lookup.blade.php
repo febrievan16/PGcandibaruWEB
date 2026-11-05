@@ -4,12 +4,6 @@
 
 @section('content')
     <section class="relative overflow-hidden py-14">
-        <div aria-hidden="true"
-             data-parallax-speed="-0.12"
-             class="heritage-watermark absolute top-6 right-6 text-[68px] sm:text-[124px]">
-            E-TICKET QR
-        </div>
-
         <div class="relative z-10 max-w-[640px] mx-auto px-4 sm:px-6 space-y-6">
             <div data-reveal="up" class="space-y-2 border-b border-[#E3D9C9] pb-5">
                 <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold">Layanan Pengunjung Tamu & Akun</span>
@@ -26,7 +20,7 @@
                 </div>
             @endif
 
-            <form data-reveal="up" data-reveal-delay="120" data-tilt-card data-tilt-max="1.8" action="{{ route('orders.lookup.submit') }}" method="POST" class="heritage-card-interactive border border-[#E3D9C9] bg-[#FFFFFF] p-6 space-y-5">
+            <form action="{{ route('orders.lookup.submit') }}" method="POST" class="border border-[#E3D9C9] bg-[#FFFFFF] p-6 space-y-5">
                 @csrf
                 <div>
                     <label for="order_code" class="block text-sm font-semibold text-[#2A211A] mb-1.5">

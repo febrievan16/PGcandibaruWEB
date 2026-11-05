@@ -5,17 +5,11 @@
 @section('content')
     <!-- Editorial Header & Sub-Navigation Menu inside /profil -->
     <section class="relative overflow-hidden border-b border-[#E3D9C9] pt-12 pb-6 lg:pt-16 lg:pb-8">
-        <div aria-hidden="true"
-             data-parallax-speed="-0.14"
-             class="heritage-watermark absolute top-4 right-6 text-[72px] sm:text-[132px]">
-            SEJARAH {{ $profile?->established_year ?? 1911 }}
-        </div>
-
         <div class="relative z-10 max-w-[1200px] mx-auto px-4 sm:px-6 space-y-8">
             <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
                 <div data-reveal="left" class="max-w-[68ch] space-y-4">
                     <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold">
-                        Modul M1 &bull; Profil, Sejarah & Publikasi Heritage (Sejak <span data-count-up="{{ $profile?->established_year ?? 1911 }}" data-count-from="1880" class="tabular-nums">{{ $profile?->established_year ?? 1911 }}</span>)
+                        Profil Resmi &amp; Warisan Sejarah (Sejak <span class="tabular-nums font-semibold">{{ $profile?->established_year ?? 1911 }}</span>)
                     </span>
                     <h1 class="font-serif text-4xl sm:text-5xl font-bold text-[#2A211A]">
                         {{ $profile?->company_name ?? 'PT Pabrik Gula Candi Baru' }}
@@ -74,13 +68,13 @@
                 <h2 class="font-serif text-2xl sm:text-3xl font-semibold text-[#6B3F1E]">
                     Sejarah Pendirian & Perjalanan Industri
                 </h2>
-                <div data-reveal-stagger="100" class="space-y-4 text-base text-[#2A211A] leading-relaxed max-w-[68ch]">
+                <div class="space-y-4 text-base text-[#2A211A] leading-relaxed max-w-[68ch]">
                     @if($profile?->history)
                         @foreach(explode("\n\n", $profile->history) as $paragraph)
-                            <p data-reveal="up">{{ $paragraph }}</p>
+                            <p>{{ $paragraph }}</p>
                         @endforeach
                     @else
-                        <p data-reveal="up">PT Pabrik Gula Candi Baru berdiri sejak tahun 1911 di Kabupaten Sidoarjo, Jawa Timur.</p>
+                        <p>PT Pabrik Gula Candi Baru berdiri sejak tahun 1911 di Kabupaten Sidoarjo, Jawa Timur.</p>
                     @endif
                 </div>
             </div>
@@ -110,12 +104,6 @@
 
     <!-- 2. Artikel & Publikasi Sejarah Pabrik -->
     <section id="artikel-heritage" class="relative overflow-hidden border-b border-[#E3D9C9] py-12 lg:py-16">
-        <div aria-hidden="true"
-             data-parallax-speed="0.11"
-             class="heritage-watermark absolute top-8 right-6 text-[68px] sm:text-[118px]">
-            LITERASI ARSIP
-        </div>
-
         <div class="relative z-10 max-w-[1200px] mx-auto px-4 sm:px-6 space-y-8">
             <div data-reveal="up" class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#E3D9C9] pb-5">
                 <div>
@@ -222,12 +210,6 @@
 
     <!-- 3. Archival Gallery with Lazy Loading & Heritage Placeholder Edge Case (FEATURES.md §2) -->
     <section id="galeri-arsip" class="relative overflow-hidden border-b border-[#E3D9C9] py-12 lg:py-16">
-        <div aria-hidden="true"
-             data-parallax-speed="-0.12"
-             class="heritage-watermark absolute bottom-6 left-4 text-[64px] sm:text-[116px]">
-            DOKUMENTASI PABRIK
-        </div>
-
         <div class="relative z-10 max-w-[1200px] mx-auto px-4 sm:px-6 space-y-8">
             <div data-reveal="up" class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#E3D9C9] pb-5">
                 <div>
