@@ -13,7 +13,10 @@
 
     @vite(['resources/css/app.css', 'resources/js/app.js'])
 </head>
-<body class="min-h-screen flex flex-col bg-[#FAF6EE] text-[#2A211A] antialiased selection:bg-[#C8A24A]/30">
+<body class="min-h-screen flex flex-col bg-[#FAF6EE] text-[#2A211A] antialiased selection:bg-[#C8A24A]/30 overflow-x-hidden">
+    <!-- Top Scroll-Driven Progress Indicator -->
+    <div id="heritage-scroll-progress" aria-hidden="true"></div>
+
     <a href="#main-content" class="sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:bg-[#C8A24A] focus:text-[#2A211A] focus:px-4 focus:py-2 focus:font-semibold">
         Lewati ke konten utama
     </a>
@@ -41,7 +44,7 @@
     </div>
 
     <!-- Main Editorial Header -->
-    <header class="border-b border-[#E3D9C9] bg-[#FAF6EE]/95 sticky top-0 z-40 backdrop-blur-xs no-print">
+    <header data-sticky-header class="border-b border-[#E3D9C9] bg-[#FAF6EE]/95 sticky top-0 z-40 backdrop-blur-xs transition-all duration-300 no-print">
         <div class="max-w-[1200px] mx-auto px-4 sm:px-6 h-20 flex items-center justify-between gap-6">
             <a href="{{ route('home') }}" class="group flex flex-col">
                 <span class="font-serif text-2xl sm:text-[28px] font-bold tracking-tight text-[#6B3F1E] leading-none">
@@ -157,26 +160,31 @@
     </main>
 
     <!-- Editorial Heritage Footer -->
-    <footer class="border-t border-[#E3D9C9] bg-[#FAF6EE] mt-20 no-print">
-        <div class="max-w-[1200px] mx-auto px-4 sm:px-6 py-12">
-            <div class="grid grid-cols-1 md:grid-cols-12 gap-8 pb-10 border-b border-[#E3D9C9]">
-                <div class="md:col-span-5 space-y-3">
+    <footer class="relative overflow-hidden border-t border-[#E3D9C9] bg-[#FAF6EE] mt-20 no-print">
+        <div aria-hidden="true"
+             data-parallax-speed="-0.10"
+             class="heritage-watermark absolute -bottom-6 right-4 text-[72px] sm:text-[120px]">
+            ANNO 1911 &bull; SIDOARJO
+        </div>
+        <div class="relative z-10 max-w-[1200px] mx-auto px-4 sm:px-6 py-12">
+            <div data-reveal-stagger="110" class="grid grid-cols-1 md:grid-cols-12 gap-8 pb-10 border-b border-[#E3D9C9]">
+                <div data-reveal="up" class="md:col-span-5 space-y-3">
                     <p class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold">Arsip & Edukasi Sejarah</p>
                     <h2 class="font-serif text-2xl font-bold text-[#6B3F1E]">PT Pabrik Gula Candi Baru</h2>
                     <p class="text-sm text-[#6E635A] max-w-[54ch] leading-relaxed">
-                        Didirikan tahun 1911 di Sidoarjo, Jawa Timur. GulaTour merupakan layanan resmi kunjungan edukasi sejarah industri gula, observasi mesin uap stasiun giling, dan pemesanan e-ticket terpadu.
+                        Didirikan tahun <span data-count-up="1911" data-count-from="1880" class="tabular-nums font-semibold text-[#2A211A]">1911</span> di Sidoarjo, Jawa Timur. GulaTour merupakan layanan resmi kunjungan edukasi sejarah industri gula, observasi mesin uap stasiun giling, dan pemesanan e-ticket terpadu.
                     </p>
                 </div>
-                <div class="md:col-span-3 space-y-2 text-sm">
+                <div data-reveal="up" class="md:col-span-3 space-y-2 text-sm">
                     <p class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold mb-3">Navigasi</p>
                     <ul class="space-y-2">
-                        <li><a href="{{ route('profile') }}" class="text-[#2A211A] hover:text-[#6B3F1E] underline-offset-4 hover:underline">Sejarah & Visi Misi</a></li>
-                        <li><a href="{{ route('events.index') }}" class="text-[#2A211A] hover:text-[#6B3F1E] underline-offset-4 hover:underline">Katalog Event & Sesi</a></li>
-                        <li><a href="{{ route('orders.lookup') }}" class="text-[#2A211A] hover:text-[#6B3F1E] underline-offset-4 hover:underline">Cek Status Pemesanan</a></li>
-                        <li><a href="{{ route('login') }}" class="text-[#2A211A] hover:text-[#6B3F1E] underline-offset-4 hover:underline">Portal Pengunjung & Admin</a></li>
+                        <li><a href="{{ route('profile') }}" class="text-[#2A211A] hover:text-[#6B3F1E] underline-offset-4 hover:underline transition-colors">Sejarah & Visi Misi</a></li>
+                        <li><a href="{{ route('events.index') }}" class="text-[#2A211A] hover:text-[#6B3F1E] underline-offset-4 hover:underline transition-colors">Katalog Event & Sesi</a></li>
+                        <li><a href="{{ route('orders.lookup') }}" class="text-[#2A211A] hover:text-[#6B3F1E] underline-offset-4 hover:underline transition-colors">Cek Status Pemesanan</a></li>
+                        <li><a href="{{ route('login') }}" class="text-[#2A211A] hover:text-[#6B3F1E] underline-offset-4 hover:underline transition-colors">Portal Pengunjung & Admin</a></li>
                     </ul>
                 </div>
-                <div class="md:col-span-4 space-y-2 text-sm text-[#6E635A]">
+                <div data-reveal="up" class="md:col-span-4 space-y-2 text-sm text-[#6E635A]">
                     <p class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold mb-3">Kontak Operasional</p>
                     <p class="text-[#2A211A] font-medium">Jl. Raya Candi No. 10, Kec. Candi, Kabupaten Sidoarjo, Jawa Timur 61271</p>
                     <p>Telepon: <span class="tabular-nums text-[#2A211A]">(031) 8921002</span></p>
@@ -184,7 +192,7 @@
                     <p class="text-xs pt-2 text-[#6E635A]">Pembayaran daring diamankan melalui gerbang pembayaran Midtrans (Virtual Account, E-Wallet, Kartu Kredit).</p>
                 </div>
             </div>
-            <div class="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-[#6E635A] gap-2">
+            <div data-reveal="fade" class="pt-6 flex flex-col sm:flex-row items-center justify-between text-xs text-[#6E635A] gap-2">
                 <p>&copy; {{ date('Y') }} PT Pabrik Gula Candi Baru — GulaTour Heritage Platform.</p>
                 <p>Harga Tiket Tetap (DEC-001) &bull; Pilih Jadwal Lebih Dulu (DEC-003) &bull; E-Ticket QR Resmi</p>
             </div>

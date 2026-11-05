@@ -3,9 +3,15 @@
 @section('title', 'Daftar Akun Pengunjung — GulaTour PT Pabrik Gula Candi Baru')
 
 @section('content')
-    <section class="py-14">
-        <div class="max-w-[540px] mx-auto px-4 sm:px-6 space-y-6">
-            <div class="border-b border-[#E3D9C9] pb-4 space-y-1">
+    <section class="relative overflow-hidden py-14">
+        <div aria-hidden="true"
+             data-parallax-speed="-0.12"
+             class="heritage-watermark absolute top-6 right-6 text-[68px] sm:text-[124px]">
+            REGISTRASI
+        </div>
+
+        <div class="relative z-10 max-w-[540px] mx-auto px-4 sm:px-6 space-y-6">
+            <div data-reveal="up" class="border-b border-[#E3D9C9] pb-4 space-y-1">
                 <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold">Modul M5 &bull; Registrasi Opsional (DEC-004)</span>
                 <h1 class="font-serif text-3xl font-bold text-[#2A211A]">Daftar Akun Pengunjung</h1>
                 <p class="text-sm text-[#6E635A]">
@@ -14,7 +20,7 @@
             </div>
 
             @if($errors->any())
-                <div role="alert" class="border border-[#8B2E1F] bg-[#8B2E1F]/10 p-4 text-sm text-[#2A211A]">
+                <div role="alert" data-reveal="scale" class="border border-[#8B2E1F] bg-[#8B2E1F]/10 p-4 text-sm text-[#2A211A]">
                     <ul class="list-disc list-inside space-y-1">
                         @foreach($errors->all() as $error)
                             <li>{{ $error }}</li>
@@ -23,7 +29,7 @@
                 </div>
             @endif
 
-            <form action="{{ route('register.submit') }}" method="POST" class="border border-[#E3D9C9] bg-[#FFFFFF] p-6 space-y-5">
+            <form data-reveal="up" data-reveal-delay="110" action="{{ route('register.submit') }}" method="POST" class="heritage-card-interactive border border-[#E3D9C9] bg-[#FFFFFF] p-6 space-y-5">
                 @csrf
                 <div>
                     <label for="name" class="block text-sm font-semibold text-[#2A211A] mb-1.5">Nama Lengkap</label>

@@ -3,10 +3,16 @@
 @section('title', 'Pesanan ' . $order->order_code . ' — Checkout & E-Ticket | GulaTour')
 
 @section('content')
-    <section class="py-12">
-        <div class="max-w-[1200px] mx-auto px-4 sm:px-6 space-y-8">
+    <section class="relative overflow-hidden py-12">
+        <div aria-hidden="true"
+             data-parallax-speed="-0.12"
+             class="heritage-watermark absolute top-6 right-6 text-[68px] sm:text-[124px]">
+            TIKET RESMI
+        </div>
+
+        <div class="relative z-10 max-w-[1200px] mx-auto px-4 sm:px-6 space-y-8">
             <!-- Header & Explicit Status Label + Color (DESIGN.md §4 & §12) -->
-            <div class="border-b border-[#E3D9C9] pb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div data-reveal="up" class="border-b border-[#E3D9C9] pb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold">
                         Modul M4 &bull; Rincian Pemesanan & Pembayaran
@@ -25,7 +31,7 @@
 
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                 <!-- Left 7/12: Payment Action (if pending) or Issued QR E-Tickets (if paid) -->
-                <div class="lg:col-span-7 space-y-6">
+                <div data-reveal="left" class="lg:col-span-7 space-y-6">
                     @if($order->status === 'pending')
                         <div class="border border-[#E3D9C9] bg-[#FFFFFF] p-6 space-y-6">
                             <div class="border-b border-[#E3D9C9] pb-4 flex flex-wrap items-center justify-between gap-2">
@@ -155,9 +161,9 @@
                                 Tunjukkan kode QR di bawah ini kepada petugas di <strong>{{ $order->schedule->event->meeting_point ?? 'Gerbang Utama PG Candi Baru' }}</strong> untuk pemindaian check-in. Tautan E-Ticket juga telah dikirimkan ke <strong>{{ $order->buyer_email }}</strong> dan WhatsApp <strong>{{ $order->buyer_phone }}</strong>.
                             </p>
 
-                            <div class="space-y-4">
+                            <div data-reveal-stagger="110" class="space-y-4">
                                 @foreach($order->tickets as $idx => $ticket)
-                                    <div class="border border-[#E3D9C9] bg-[#FAF6EE] p-4 flex flex-col sm:flex-row items-center justify-between gap-6">
+                                    <div data-reveal="up" data-tilt-card data-tilt-max="1.8" class="heritage-card-interactive border border-[#E3D9C9] bg-[#FAF6EE] p-4 flex flex-col sm:flex-row items-center justify-between gap-6">
                                         <div class="space-y-2 flex-1">
                                             <div class="flex items-center gap-2 text-xs">
                                                 <span class="font-semibold uppercase tracking-wider text-[#6B3F1E]">
@@ -212,8 +218,8 @@
                 </div>
 
                 <!-- Right 5/12: Order Metadata Summary -->
-                <div class="lg:col-span-5">
-                    <div class="border border-[#E3D9C9] bg-[#FFFFFF] p-6 space-y-4">
+                <div data-reveal="right" data-reveal-delay="140" class="lg:col-span-5">
+                    <div data-tilt-card data-tilt-max="2.0" class="heritage-card-interactive border border-[#E3D9C9] bg-[#FFFFFF] p-6 space-y-4">
                         <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold block">
                             Rincian Pesanan Resmi
                         </span>

@@ -3,9 +3,15 @@
 @section('title', 'Riwayat Pemesanan & E-Ticket Saya — GulaTour')
 
 @section('content')
-    <section class="py-12">
-        <div class="max-w-[1200px] mx-auto px-4 sm:px-6 space-y-8">
-            <div class="border-b border-[#E3D9C9] pb-5 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+    <section class="relative overflow-hidden py-12">
+        <div aria-hidden="true"
+             data-parallax-speed="-0.12"
+             class="heritage-watermark absolute top-6 right-6 text-[68px] sm:text-[124px]">
+            RIWAYAT TIKET
+        </div>
+
+        <div class="relative z-10 max-w-[1200px] mx-auto px-4 sm:px-6 space-y-8">
+            <div data-reveal="up" class="border-b border-[#E3D9C9] pb-5 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                 <div>
                     <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold">Modul M5 &bull; Akun Terdaftar (FR-10)</span>
                     <h1 class="font-serif text-3xl sm:text-4xl font-bold text-[#2A211A] mt-1">Riwayat Pemesanan & E-Ticket</h1>
@@ -20,7 +26,7 @@
 
             @if($orders->isEmpty())
                 <!-- Exact Empty State from DESIGN.md §11 -->
-                <div class="border border-[#E3D9C9] bg-[#FFFFFF] p-12 text-center space-y-4">
+                <div data-reveal="scale" class="border border-[#E3D9C9] bg-[#FFFFFF] p-12 text-center space-y-4">
                     <h2 class="font-serif text-2xl text-[#2A211A]">Anda belum memiliki pemesanan.</h2>
                     <p class="text-sm text-[#6E635A]">Pilih jadwal sesi tour aktif untuk mulai memesan tiket kunjungan.</p>
                     <div>
@@ -29,7 +35,7 @@
                 </div>
             @else
                 <!-- Native Table with Hairline Borders per DESIGN.md §8 -->
-                <div class="overflow-x-auto border border-[#E3D9C9] bg-[#FFFFFF]">
+                <div data-reveal="up" data-reveal-delay="110" class="overflow-x-auto border border-[#E3D9C9] bg-[#FFFFFF]">
                     <table class="w-full text-sm text-left border-collapse">
                         <thead>
                             <tr class="border-b border-[#E3D9C9] bg-[#FAF6EE] text-xs uppercase tracking-wider text-[#6E635A]">

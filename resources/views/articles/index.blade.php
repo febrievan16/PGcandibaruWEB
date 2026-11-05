@@ -3,23 +3,29 @@
 @section('title', 'Artikel & Catatan Sejarah — PT Pabrik Gula Candi Baru')
 
 @section('content')
-    <section class="border-b border-[#E3D9C9] py-12">
-        <div class="max-w-[1200px] mx-auto px-4 sm:px-6 space-y-4">
-            <div>
+    <section class="relative overflow-hidden border-b border-[#E3D9C9] py-12">
+        <div aria-hidden="true"
+             data-parallax-speed="-0.14"
+             class="heritage-watermark absolute top-3 right-6 text-[68px] sm:text-[124px]">
+            JURNAL HERITAGE
+        </div>
+
+        <div class="relative z-10 max-w-[1200px] mx-auto px-4 sm:px-6 space-y-4">
+            <div data-reveal="down">
                 <a href="{{ route('profile') }}" class="link-heritage-tertiary text-xs uppercase tracking-wider">
                     &larr; Kembali ke Halaman Profil & Sejarah Pabrik
                 </a>
             </div>
 
             <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
-                <div>
+                <div data-reveal="left">
                     <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold">Publikasi Heritage PT PG Candi Baru</span>
                     <h1 class="font-serif text-4xl font-bold text-[#2A211A] mt-1">Artikel & Catatan Sejarah Pabrik</h1>
                 </div>
 
                 @auth
                     @if(auth()->user()->isAdmin())
-                        <div class="flex items-center gap-3">
+                        <div data-reveal="right" class="flex items-center gap-3">
                             <a href="{{ route('admin.articles.create') }}" class="btn-heritage-primary text-xs py-2 px-4">
                                 + Tulis Artikel Baru
                             </a>
@@ -36,21 +42,21 @@
     <section class="py-12">
         <div class="max-w-[1200px] mx-auto px-4 sm:px-6">
             @if($articles->isEmpty())
-                <div class="border border-[#E3D9C9] bg-[#FFFFFF] p-12 text-center space-y-3">
+                <div data-reveal="scale" class="border border-[#E3D9C9] bg-[#FFFFFF] p-12 text-center space-y-3">
                     <h2 class="font-serif text-2xl text-[#2A211A]">Belum ada artikel yang diterbitkan.</h2>
                     <p class="text-sm text-[#6E635A]">Silakan kembali ke halaman profil perusahaan.</p>
                 </div>
             @else
-                <div class="divide-y divide-[#E3D9C9] border-t border-b border-[#E3D9C9]">
+                <div data-reveal-stagger="120" class="divide-y divide-[#E3D9C9] border-t border-b border-[#E3D9C9]">
                     @foreach($articles as $article)
-                        <article class="py-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                        <article data-reveal="up" class="py-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                             <div class="lg:col-span-4">
-                                <a href="{{ route('articles.show', $article->slug) }}" class="block border border-[#E3D9C9] bg-[#FFFFFF] p-2 hover:border-[#6B3F1E]">
+                                <a href="{{ route('articles.show', $article->slug) }}" data-tilt-card class="group heritage-card-interactive block border border-[#E3D9C9] bg-[#FFFFFF] p-2 hover:border-[#6B3F1E]">
                                     <div class="aspect-[16/10] bg-[#F3EAD8] border border-[#E3D9C9] overflow-hidden flex items-center justify-center">
                                         @if($article->cover_image)
-                                            <img src="{{ $article->cover_image }}" alt="{{ $article->title }}" loading="lazy" class="w-full h-full object-cover">
+                                            <img src="{{ $article->cover_image }}" alt="{{ $article->title }}" loading="lazy" class="heritage-img-zoom w-full h-full object-cover">
                                         @else
-                                            <svg class="w-full h-full" viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg">
+                                            <svg class="heritage-img-zoom w-full h-full" viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg">
                                                 <rect width="480" height="300" fill="#F3EAD8"/>
                                                 <rect x="18" y="18" width="444" height="264" fill="none" stroke="#A67C52" stroke-width="1.5"/>
                                                 <text x="240" y="145" text-anchor="middle" fill="#6B3F1E" font-family="Georgia, serif" font-size="16" font-weight="bold">{{ strtoupper($article->category) }}</text>

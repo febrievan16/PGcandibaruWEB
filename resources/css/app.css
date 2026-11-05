@@ -192,6 +192,226 @@
     animation: skeleton-pulse 1.6s ease-in-out infinite;
 }
 
+/* =========================================================================
+   HERITAGE PARALLAX, SCROLL-REVEAL & MECHANICAL INTERACTIVE MOTION SYSTEM
+   ========================================================================= */
+
+#heritage-scroll-progress {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    z-index: 60;
+    background: linear-gradient(90deg, #6B3F1E 0%, #C8A24A 65%, #A67C52 100%);
+    transform-origin: 0% 50%;
+    transform: scaleX(var(--scroll-progress, 0));
+    transition: transform 80ms linear;
+    pointer-events: none;
+}
+
+.header-scrolled {
+    box-shadow: 0 8px 24px -12px rgba(42, 33, 26, 0.14);
+    border-bottom-color: #C8A24A !important;
+}
+
+/* Progressive-Enhancement Scroll Reveal (Only hides before reveal when JS motion is active) */
+html.js-motion-ready [data-reveal] {
+    opacity: 0;
+    will-change: transform, opacity;
+    transition:
+        opacity 720ms cubic-bezier(0.22, 1, 0.36, 1),
+        transform 720ms cubic-bezier(0.22, 1, 0.36, 1);
+    transition-delay: var(--reveal-delay, 0ms);
+}
+
+html.js-motion-ready [data-reveal="up"] {
+    transform: translate3d(0, 28px, 0);
+}
+
+html.js-motion-ready [data-reveal="down"] {
+    transform: translate3d(0, -24px, 0);
+}
+
+html.js-motion-ready [data-reveal="left"] {
+    transform: translate3d(-32px, 0, 0);
+}
+
+html.js-motion-ready [data-reveal="right"] {
+    transform: translate3d(32px, 0, 0);
+}
+
+html.js-motion-ready [data-reveal="scale"] {
+    transform: translate3d(0, 16px, 0) scale(0.96);
+}
+
+html.js-motion-ready [data-reveal="fade"] {
+    transform: translate3d(0, 0, 0);
+}
+
+html.js-motion-ready [data-reveal].is-revealed {
+    opacity: 1;
+    transform: translate3d(0, 0, 0) scale(1);
+}
+
+/* Multi-Layer Scroll & Mouse Depth Parallax */
+[data-parallax-speed],
+[data-mouse-depth] {
+    will-change: transform;
+    transition: transform 90ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Archival Background Watermark */
+.heritage-watermark {
+    font-family: var(--font-serif);
+    font-weight: 700;
+    color: #6B3F1E;
+    opacity: 0.045;
+    pointer-events: none;
+    user-select: none;
+    line-height: 0.9;
+    letter-spacing: -0.03em;
+    white-space: nowrap;
+}
+
+/* Tactile Interactive Cards & 3D Archival Plate Tilt */
+.heritage-card-interactive {
+    transition:
+        transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
+        box-shadow 280ms cubic-bezier(0.22, 1, 0.36, 1),
+        border-color 220ms ease,
+        background-color 220ms ease;
+    transform: perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translate3d(0, 0, 0);
+}
+
+.heritage-card-interactive:hover {
+    transform: perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translate3d(0, -4px, 0);
+    box-shadow: 0 14px 28px -12px rgba(107, 63, 30, 0.16);
+    border-color: var(--color-primary);
+}
+
+/* Archival Image Slow Pan & Zoom */
+.heritage-img-zoom {
+    transition: transform 650ms cubic-bezier(0.22, 1, 0.36, 1);
+    will-change: transform;
+}
+
+.group:hover .heritage-img-zoom,
+.heritage-card-interactive:hover .heritage-img-zoom {
+    transform: scale(1.045);
+}
+
+/* Button Tactile Press & Subtle Arrow Slide */
+.btn-heritage-primary:hover:not(:disabled),
+.btn-heritage-secondary:hover:not(:disabled) {
+    transform: translateY(-1.5px);
+    box-shadow: 0 6px 14px -6px rgba(107, 63, 30, 0.28);
+}
+
+.btn-heritage-primary:active:not(:disabled),
+.btn-heritage-secondary:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+/* Mechanical Steam Flywheel & Smokestack Steam Animations (1911 Sugar Mill) */
+@keyframes flywheel-continuous {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
+@keyframes heritage-steam-rise {
+    0% {
+        opacity: 0;
+        transform: translate3d(0, 8px, 0) scale(0.75);
+    }
+    40% {
+        opacity: 0.55;
+    }
+    100% {
+        opacity: 0;
+        transform: translate3d(-18px, -34px, 0) scale(1.45);
+    }
+}
+
+@keyframes lori-rail-march {
+    0% {
+        stroke-dashoffset: 0;
+    }
+    100% {
+        stroke-dashoffset: -48;
+    }
+}
+
+@keyframes price-highlight-pulse {
+    0% {
+        transform: scale(1);
+    }
+    35% {
+        transform: scale(1.06);
+        color: #C8A24A;
+    }
+    100% {
+        transform: scale(1);
+    }
+}
+
+.flywheel-spin-group {
+    transform-origin: 660px 335px;
+    animation: flywheel-continuous 18s linear infinite;
+}
+
+.steam-puff-1 {
+    animation: heritage-steam-rise 4.2s ease-out infinite;
+}
+
+.steam-puff-2 {
+    animation: heritage-steam-rise 4.2s ease-out 1.4s infinite;
+}
+
+.steam-puff-3 {
+    animation: heritage-steam-rise 4.2s ease-out 2.8s infinite;
+}
+
+.lori-rail-animated {
+    stroke-dasharray: 12 12;
+    animation: lori-rail-march 2.4s linear infinite;
+}
+
+.price-pulse-active {
+    animation: price-highlight-pulse 420ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Respect Reduced Motion Preferences */
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    html.js-motion-ready [data-reveal] {
+        opacity: 1 !important;
+        transform: none !important;
+        transition: none !important;
+    }
+
+    [data-parallax-speed],
+    [data-mouse-depth],
+    .heritage-card-interactive,
+    .heritage-img-zoom,
+    .flywheel-spin-group,
+    .steam-puff-1,
+    .steam-puff-2,
+    .steam-puff-3,
+    .lori-rail-animated {
+        animation: none !important;
+        transform: none !important;
+        transition: none !important;
+    }
+}
+
 .print-only-document {
     display: none;
 }
@@ -236,8 +456,17 @@
         margin: 12mm 10mm 14mm 10mm;
     }
 
-    .no-print {
+    .no-print,
+    #heritage-scroll-progress {
         display: none !important;
+    }
+
+    [data-reveal],
+    [data-parallax-speed],
+    [data-mouse-depth] {
+        opacity: 1 !important;
+        transform: none !important;
+        transition: none !important;
     }
 
     .print-only-document {
