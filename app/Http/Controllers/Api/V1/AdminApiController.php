@@ -41,10 +41,9 @@ class AdminApiController extends Controller
         }
 
         if ($request->query('export') === 'csv') {
-            $orders = $query->get();
             $filename = 'laporan-pemesanan-gulatour-' . now()->format('Ymd-His') . '.csv';
 
-            return response()->streamDownload(function () use ($orders): void {
+            return response()->streamDownload(function () use ($query): void {
                 $handle = fopen('php://output', 'w');
                 if ($handle === false) {
                     return;
@@ -64,21 +63,23 @@ class AdminApiController extends Controller
                     'Waktu Lunas',
                 ]);
 
-                foreach ($orders as $order) {
-                    fputcsv($handle, [
-                        $order->order_code,
-                        $order->buyer_name,
-                        $order->buyer_email,
-                        $order->buyer_phone,
-                        $order->schedule->event->title ?? '-',
-                        $order->schedule->tour_date->format('Y-m-d'),
-                        $order->schedule->formattedTimeRange(),
-                        $order->ticket_qty,
-                        $order->total_amount,
-                        $order->status,
-                        $order->paid_at?->toIso8601String() ?? '-',
-                    ]);
-                }
+                $query->chunk(200, function ($orders) use ($handle): void {
+                    foreach ($orders as $order) {
+                        fputcsv($handle, [
+                            $order->order_code,
+                            $order->buyer_name,
+                            $order->buyer_email,
+                            $order->buyer_phone,
+                            $order->schedule->event->title ?? '-',
+                            $order->schedule->tour_date->format('Y-m-d'),
+                            $order->schedule->formattedTimeRange(),
+                            $order->ticket_qty,
+                            $order->total_amount,
+                            $order->status,
+                            $order->paid_at?->toIso8601String() ?? '-',
+                        ]);
+                    }
+                });
 
                 fclose($handle);
             }, $filename, [

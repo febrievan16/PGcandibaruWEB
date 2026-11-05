@@ -110,5 +110,49 @@ class Order extends Model
     {
         return 'Rp ' . number_format($this->total_amount, 0, ',', '.');
     }
+
+    /**
+     * Human-readable payment channel label in Indonesian.
+     */
+    public function paymentChannelLabel(): string
+    {
+        return match ($this->payment_channel) {
+            'bank_transfer_bca', 'bank_transfer' => 'Virtual Account BCA',
+            'bank_transfer_mandiri' => 'Virtual Account Mandiri',
+            'bank_transfer_bni' => 'Virtual Account BNI',
+            'ewallet_qris' => 'QRIS / E-Wallet',
+            'credit_card' => 'Kartu Kredit / Debit',
+            'manual_admin_verification' => 'Verifikasi Manual Admin',
+            null, '' => 'Belum Dipilih',
+            default => strtoupper(str_replace('_', ' ', (string) $this->payment_channel)),
+        };
+    }
+
+    /**
+     * Detailed narrative description of this transaction for Admin Monthly Report.
+     */
+    public function transactionDescription(): string
+    {
+        $eventTitle = $this->schedule?->event?->title ?? 'Event Tour PG Candi Baru';
+        $tourDate = $this->schedule?->tour_date?->translatedFormat('d M Y') ?? '-';
+        $sessionCode = $this->schedule?->session_code ?? '-';
+        $unitPrice = 'Rp ' . number_format($this->unit_price, 0, ',', '.');
+        $buyerType = $this->user_id !== null ? 'Akun Terdaftar' : 'Pengunjung Tamu';
+        $channel = $this->paymentChannelLabel();
+
+        $base = "{$this->buyer_name} ({$buyerType}) memesan {$this->ticket_qty} tiket ({$unitPrice}/tiket) untuk event \"{$eventTitle}\" pada jadwal {$tourDate} (Sesi {$sessionCode}).";
+
+        if ($this->status === 'paid') {
+            $paidDate = $this->paid_at?->translatedFormat('d M Y H:i') ?? '-';
+
+            return "{$base} Transaksi senilai {$this->formattedTotal()} telah LUNAS melalui {$channel} pada {$paidDate} WIB dan {$this->ticket_qty} E-Ticket QR telah diterbitkan.";
+        }
+
+        if ($this->status === 'pending') {
+            return "{$base} Tagihan sebesar {$this->formattedTotal()} saat ini MENUNGGU PEMBAYARAN ({$channel}) dengan kuota {$this->ticket_qty} kursi sedang dikunci.";
+        }
+
+        return "{$base} Transaksi senilai {$this->formattedTotal()} berstatus " . strtoupper($this->statusLabel()) . ' dan kuota kursi telah dikembalikan ke sesi jadwal.';
+    }
 }
 

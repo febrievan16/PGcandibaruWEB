@@ -73,9 +73,7 @@ class OrderWebController extends Controller
      */
     public function simulatePayment(Request $request, string $orderCode): RedirectResponse
     {
-        $order = Order::with(['schedule.event', 'tickets'])
-            ->where('order_code', $orderCode)
-            ->firstOrFail();
+        $order = Order::where('order_code', $orderCode)->firstOrFail();
 
         $this->authorizeOrderAccess($request, $order);
 

@@ -67,7 +67,11 @@ class Schedule extends Model
      */
     public function isPast(): bool
     {
-        return Carbon::parse($this->tour_date)->startOfDay()->lt(Carbon::today());
+        $date = $this->tour_date instanceof Carbon
+            ? $this->tour_date
+            : Carbon::parse($this->tour_date);
+
+        return $date->copy()->startOfDay()->lt(Carbon::today());
     }
 
     /**
@@ -115,6 +119,26 @@ class Schedule extends Model
         }
 
         return 'Tersedia';
+    }
+
+    /**
+     * Normalized state key for filtering the Occupancy Table (`available`, `full`, `past`, `closed`).
+     */
+    public function occupancyStateKey(): string
+    {
+        if ($this->isPast()) {
+            return 'past';
+        }
+
+        if ($this->remainingQuota() <= 0 || $this->status === 'full') {
+            return 'full';
+        }
+
+        if ($this->status === 'closed') {
+            return 'closed';
+        }
+
+        return 'available';
     }
 }
 

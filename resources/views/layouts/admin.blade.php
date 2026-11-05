@@ -19,7 +19,7 @@
 
     <div class="min-h-screen flex flex-col lg:flex-row">
         <!-- Fixed Sidebar on Desktop (≥ 1024px per DESIGN.md §10) -->
-        <aside class="w-full lg:w-64 lg:fixed lg:inset-y-0 lg:left-0 bg-[#FAF6EE] border-b lg:border-b-0 lg:border-r border-[#E3D9C9] flex flex-col justify-between z-30">
+        <aside class="no-print w-full lg:w-64 lg:fixed lg:inset-y-0 lg:left-0 bg-[#FAF6EE] border-b lg:border-b-0 lg:border-r border-[#E3D9C9] flex flex-col justify-between z-30">
             <div>
                 <div class="p-5 border-b border-[#E3D9C9] flex items-center justify-between lg:block">
                     <div>
@@ -40,6 +40,10 @@
                        class="px-3.5 py-2.5 text-sm font-medium rounded-[2px] whitespace-nowrap {{ request()->routeIs('admin.dashboard') ? 'bg-[#F3EAD8] text-[#6B3F1E] font-semibold border-l-2 border-[#6B3F1E]' : 'text-[#2A211A] hover:bg-[#F3EAD8]/60' }}">
                         Ringkasan & Kuota
                     </a>
+                    <a href="{{ route('admin.transactions.index') }}"
+                       class="px-3.5 py-2.5 text-sm font-medium rounded-[2px] whitespace-nowrap {{ request()->routeIs('admin.transactions.*') ? 'bg-[#F3EAD8] text-[#6B3F1E] font-semibold border-l-2 border-[#6B3F1E]' : 'text-[#2A211A] hover:bg-[#F3EAD8]/60' }}">
+                        Laporan & Data Transaksi
+                    </a>
                     <a href="{{ route('admin.orders.index') }}"
                        class="px-3.5 py-2.5 text-sm font-medium rounded-[2px] whitespace-nowrap {{ request()->routeIs('admin.orders.*') ? 'bg-[#F3EAD8] text-[#6B3F1E] font-semibold border-l-2 border-[#6B3F1E]' : 'text-[#2A211A] hover:bg-[#F3EAD8]/60' }}">
                         Daftar Pemesanan
@@ -55,6 +59,10 @@
                     <a href="{{ route('admin.profile.edit') }}"
                        class="px-3.5 py-2.5 text-sm font-medium rounded-[2px] whitespace-nowrap {{ request()->routeIs('admin.profile.*') ? 'bg-[#F3EAD8] text-[#6B3F1E] font-semibold border-l-2 border-[#6B3F1E]' : 'text-[#2A211A] hover:bg-[#F3EAD8]/60' }}">
                         Profil & Galeri Pabrik
+                    </a>
+                    <a href="{{ route('admin.articles.index') }}"
+                       class="px-3.5 py-2.5 text-sm font-medium rounded-[2px] whitespace-nowrap {{ request()->routeIs('admin.articles.*') ? 'bg-[#F3EAD8] text-[#6B3F1E] font-semibold border-l-2 border-[#6B3F1E]' : 'text-[#2A211A] hover:bg-[#F3EAD8]/60' }}">
+                        Artikel & Publikasi
                     </a>
                 </nav>
             </div>
@@ -79,8 +87,8 @@
         </aside>
 
         <!-- Main Workspace -->
-        <div class="flex-1 lg:pl-64 flex flex-col min-w-0">
-            <header class="border-b border-[#E3D9C9] bg-[#FFFFFF] px-6 py-4 flex flex-wrap items-center justify-between gap-4">
+        <div id="admin-workspace-wrapper" class="flex-1 lg:pl-64 print:pl-0 flex flex-col min-w-0">
+            <header class="no-print border-b border-[#E3D9C9] bg-[#FFFFFF] px-6 py-4 flex flex-wrap items-center justify-between gap-4">
                 <div>
                     <h1 class="font-serif text-2xl font-bold text-[#2A211A]">@yield('page_title', 'Dashboard Operasional')</h1>
                     @hasSection('page_subtitle')
@@ -93,7 +101,7 @@
             </header>
 
             @if(session('status'))
-                <div class="px-6 pt-5">
+                <div class="px-6 pt-5 no-print">
                     <div role="status" class="border border-[#4A6B3A] bg-[#4A6B3A]/10 text-[#2A211A] px-4 py-3 text-sm">
                         <strong class="text-[#4A6B3A] uppercase text-xs tracking-wider block">Berhasil</strong>
                         {{ session('status') }}
@@ -102,7 +110,7 @@
             @endif
 
             @if($errors->any())
-                <div class="px-6 pt-5">
+                <div class="px-6 pt-5 no-print">
                     <div role="alert" class="border border-[#8B2E1F] bg-[#8B2E1F]/10 text-[#2A211A] px-4 py-3 text-sm">
                         <strong class="text-[#8B2E1F] uppercase text-xs tracking-wider block mb-1">Perhatian Validasi</strong>
                         <ul class="list-disc list-inside space-y-0.5">
@@ -114,7 +122,7 @@
                 </div>
             @endif
 
-            <main id="admin-main" class="p-6 flex-1">
+            <main id="admin-main" class="p-6 print:p-0 flex-1">
                 @yield('content')
             </main>
         </div>

@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Admin;
 
 use App\Http\Controllers\Controller;
 use App\Models\AdminNotification;
+use App\Models\Article;
 use App\Models\AuditLog;
 use App\Models\CompanyProfile;
 use App\Models\Event;
@@ -29,26 +30,44 @@ class AdminDashboardController extends Controller
     /**
      * Render Admin Dashboard overview: revenue, order metrics, session occupancy, notifications, audit log (FR-11, FR-16).
      */
-    public function index(): View
+    public function index(Request $request): View
     {
-        $totalRevenue = (int) Order::where('status', 'paid')->sum('total_amount');
-        $paidOrdersCount = Order::where('status', 'paid')->count();
-        $pendingOrdersCount = Order::where('status', 'pending')->count();
-        $ticketsSoldCount = (int) Order::where('status', 'paid')->sum('ticket_qty');
+        $metrics = Order::query()
+            ->selectRaw("
+                COALESCE(SUM(CASE WHEN status = 'paid' THEN total_amount ELSE 0 END), 0) as total_revenue,
+                COUNT(CASE WHEN status = 'paid' THEN 1 END) as paid_orders_count,
+                COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_orders_count,
+                COALESCE(SUM(CASE WHEN status = 'paid' THEN ticket_qty ELSE 0 END), 0) as tickets_sold_count
+            ")
+            ->first();
 
-        $schedules = Schedule::with('event')
+        $totalRevenue = (int) ($metrics->total_revenue ?? 0);
+        $paidOrdersCount = (int) ($metrics->paid_orders_count ?? 0);
+        $pendingOrdersCount = (int) ($metrics->pending_orders_count ?? 0);
+        $ticketsSoldCount = (int) ($metrics->tickets_sold_count ?? 0);
+
+        $schedules = Schedule::with('event:id,title')
             ->orderBy('tour_date')
             ->orderBy('start_time')
             ->get();
 
-        $notifications = AdminNotification::with('order')
+        $occupancyEvents = $schedules
+            ->pluck('event')
+            ->filter()
+            ->unique('id')
+            ->values();
+
+        $filterEventId = (string) $request->query('event_id', 'all');
+        $filterSessionStatus = (string) $request->query('session_status', 'all');
+
+        $notifications = AdminNotification::query()
             ->latest('created_at')
             ->limit(8)
             ->get();
 
         $unreadNotificationsCount = AdminNotification::where('is_read', false)->count();
 
-        $auditLogs = AuditLog::with('user')
+        $auditLogs = AuditLog::with('user:id,name')
             ->latest('created_at')
             ->limit(10)
             ->get();
@@ -59,6 +78,9 @@ class AdminDashboardController extends Controller
             'pendingOrdersCount' => $pendingOrdersCount,
             'ticketsSoldCount' => $ticketsSoldCount,
             'schedules' => $schedules,
+            'occupancyEvents' => $occupancyEvents,
+            'filterEventId' => $filterEventId,
+            'filterSessionStatus' => $filterSessionStatus,
             'notifications' => $notifications,
             'unreadNotificationsCount' => $unreadNotificationsCount,
             'auditLogs' => $auditLogs,
@@ -70,7 +92,7 @@ class AdminDashboardController extends Controller
      */
     public function orders(Request $request): View
     {
-        $query = Order::with(['schedule.event', 'tickets', 'user'])
+        $query = Order::with(['schedule:id,event_id,tour_date,session_code,start_time,end_time'])
             ->latest('created_at');
 
         if ($request->filled('status')) {
@@ -94,20 +116,248 @@ class AdminDashboardController extends Controller
 
         $selectedOrder = null;
         if ($request->filled('inspect')) {
-            $selectedOrder = Order::with(['schedule.event', 'tickets', 'user'])
-                ->where('order_code', (string) $request->query('inspect'))
-                ->first();
+            $inspectCode = (string) $request->query('inspect');
+            $selectedOrder = $orders->getCollection()->firstWhere('order_code', $inspectCode)
+                ?? Order::where('order_code', $inspectCode)->first();
         }
         if (! $selectedOrder && $orders->count() > 0) {
             $selectedOrder = $orders->first();
         }
 
-        $schedules = Schedule::with('event')->orderByDesc('tour_date')->get();
+        $selectedOrder?->loadMissing(['schedule.event', 'tickets']);
+
+        $schedules = Schedule::with('event:id,title')
+            ->select(['id', 'event_id', 'tour_date', 'session_code'])
+            ->orderByDesc('tour_date')
+            ->get();
 
         return view('admin.orders.index', [
             'orders' => $orders,
             'selectedOrder' => $selectedOrder,
             'schedules' => $schedules,
+        ]);
+    }
+
+    /**
+     * Render detailed Monthly Transaction Report, Per-Buyer Transaction Descriptions, and Most Popular Events Analytics.
+     */
+    public function transactions(Request $request): View
+    {
+        $allOrders = Order::with([
+            'schedule:id,event_id,tour_date,session_code,start_time,end_time',
+            'schedule.event:id,title,slug,ticket_price',
+        ])
+            ->latest('created_at')
+            ->get();
+
+        $events = Event::query()
+            ->select(['id', 'title', 'slug', 'ticket_price', 'status'])
+            ->where('status', 'active')
+            ->orderBy('id')
+            ->get();
+
+        // Filter parameters for the detailed transactions table
+        $selectedMonth = (string) $request->query('month', '');
+        $selectedEventId = $request->integer('event_id') ?: null;
+        $selectedStatus = (string) $request->query('status', '');
+        $search = trim((string) $request->query('search', ''));
+
+        $filteredOrders = $allOrders->filter(function (Order $order) use ($selectedMonth, $selectedEventId, $selectedStatus, $search): bool {
+            if ($selectedMonth !== '') {
+                $orderMonth = ($order->paid_at ?? $order->created_at)?->format('Y-m');
+                if ($orderMonth !== $selectedMonth) {
+                    return false;
+                }
+            }
+
+            if ($selectedEventId !== null && $order->schedule?->event_id !== $selectedEventId) {
+                return false;
+            }
+
+            if ($selectedStatus !== '' && $order->status !== $selectedStatus) {
+                return false;
+            }
+
+            if ($search !== '') {
+                $haystack = strtolower($order->order_code . ' ' . $order->buyer_name . ' ' . $order->buyer_email);
+                if (! str_contains($haystack, strtolower($search))) {
+                    return false;
+                }
+            }
+
+            return true;
+        })->values();
+
+        // 1. Build 6-Month Report Series (chronological & reverse-chronological)
+        $monthKeys = collect();
+        for ($i = 5; $i >= 0; $i--) {
+            $monthKeys->push(now()->subMonths($i)->format('Y-m'));
+        }
+        foreach ($allOrders as $order) {
+            $mKey = ($order->paid_at ?? $order->created_at)?->format('Y-m');
+            if ($mKey && ! $monthKeys->contains($mKey)) {
+                $monthKeys->push($mKey);
+            }
+        }
+        $monthKeys = $monthKeys->sort()->values();
+
+        $monthlyReport = $monthKeys->map(function (string $monthKey) use ($allOrders): array {
+            $monthDate = \Illuminate\Support\Carbon::createFromFormat('Y-m-d', $monthKey . '-01');
+            $monthOrders = $allOrders->filter(fn (Order $o): bool => (($o->paid_at ?? $o->created_at)?->format('Y-m')) === $monthKey);
+            $paidMonthOrders = $monthOrders->where('status', 'paid');
+            $pendingMonthOrders = $monthOrders->where('status', 'pending');
+            $voidMonthOrders = $monthOrders->whereIn('status', ['expired', 'cancelled']);
+
+            $topEventGroup = $monthOrders
+                ->groupBy(fn (Order $o): string => $o->schedule?->event?->title ?? 'Lainnya')
+                ->sortByDesc(fn ($group): int => (int) $group->sum('ticket_qty'));
+
+            $topEventTitle = $topEventGroup->keys()->first() ?? '-';
+            $topEventTickets = $topEventGroup->first() ? (int) $topEventGroup->first()->sum('ticket_qty') : 0;
+
+            $totalCount = $monthOrders->count();
+            $paidCount = $paidMonthOrders->count();
+
+            return [
+                'month_key' => $monthKey,
+                'month_label' => $monthDate->translatedFormat('F Y'),
+                'short_label' => $monthDate->translatedFormat('M Y'),
+                'total_orders' => $totalCount,
+                'paid_orders' => $paidCount,
+                'pending_orders' => $pendingMonthOrders->count(),
+                'void_orders' => $voidMonthOrders->count(),
+                'tickets_sold' => (int) $paidMonthOrders->sum('ticket_qty'),
+                'revenue' => (int) $paidMonthOrders->sum('total_amount'),
+                'pending_amount' => (int) $pendingMonthOrders->sum('total_amount'),
+                'conversion_rate' => $totalCount > 0 ? (int) round(($paidCount / $totalCount) * 100) : 0,
+                'top_event_title' => $topEventTitle,
+                'top_event_tickets' => $topEventTickets,
+            ];
+        })->values();
+
+        $maxMonthlyRevenue = max(1, (int) $monthlyReport->max('revenue'));
+        $maxMonthlyTickets = max(1, (int) $monthlyReport->max('tickets_sold'));
+
+        // 2. Most Frequently Ordered Events Ranking (based on filtered or all orders)
+        $totalOrdersCount = max(1, $allOrders->count());
+        $totalPaidTickets = max(1, (int) $allOrders->where('status', 'paid')->sum('ticket_qty'));
+        $totalPaidRevenue = max(1, (int) $allOrders->where('status', 'paid')->sum('total_amount'));
+
+        $eventRankings = $events->map(function (Event $event) use ($allOrders, $totalOrdersCount, $totalPaidTickets, $totalPaidRevenue): array {
+            $eventOrders = $allOrders->filter(fn (Order $o): bool => $o->schedule?->event_id === $event->id);
+            $paidEventOrders = $eventOrders->where('status', 'paid');
+
+            $ordersCount = $eventOrders->count();
+            $paidCount = $paidEventOrders->count();
+            $ticketsSold = (int) $paidEventOrders->sum('ticket_qty');
+            $totalTicketsRequested = (int) $eventOrders->sum('ticket_qty');
+            $revenue = (int) $paidEventOrders->sum('total_amount');
+            $uniqueBuyers = $eventOrders->pluck('buyer_email')->map(fn ($e): string => strtolower((string) $e))->unique()->count();
+
+            return [
+                'event_id' => $event->id,
+                'title' => $event->title,
+                'slug' => $event->slug,
+                'ticket_price' => $event->ticket_price,
+                'total_orders' => $ordersCount,
+                'paid_orders' => $paidCount,
+                'tickets_sold' => $ticketsSold,
+                'total_tickets_requested' => $totalTicketsRequested,
+                'revenue' => $revenue,
+                'unique_buyers' => $uniqueBuyers,
+                'avg_tickets_per_order' => $ordersCount > 0 ? round($totalTicketsRequested / $ordersCount, 1) : 0.0,
+                'order_share_pct' => (int) round(($ordersCount / $totalOrdersCount) * 100),
+                'ticket_share_pct' => (int) round(($ticketsSold / $totalPaidTickets) * 100),
+                'revenue_share_pct' => (int) round(($revenue / $totalPaidRevenue) * 100),
+            ];
+        })->sortByDesc(fn (array $item): array => [$item['tickets_sold'], $item['total_orders'], $item['revenue']])->values();
+
+        // 3. Per-Buyer Transaction Summary (Accumulated Activity per Customer)
+        $buyerSummaries = $allOrders
+            ->groupBy(fn (Order $o): string => strtolower(trim($o->buyer_email)))
+            ->map(function ($buyerOrders): array {
+                /** @var Order $latest */
+                $latest = $buyerOrders->first();
+                $paidOrders = $buyerOrders->where('status', 'paid');
+                $totalOrders = $buyerOrders->count();
+                $paidCount = $paidOrders->count();
+                $ticketsBought = (int) $paidOrders->sum('ticket_qty');
+                $totalTicketsAll = (int) $buyerOrders->sum('ticket_qty');
+                $totalSpent = (int) $paidOrders->sum('total_amount');
+
+                $eventNames = $buyerOrders
+                    ->map(fn (Order $o): string => $o->schedule?->event?->title ?? 'Event Tour')
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                $channels = $buyerOrders
+                    ->map(fn (Order $o): string => $o->paymentChannelLabel())
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                $isRegistered = $buyerOrders->contains(fn (Order $o): bool => $o->user_id !== null);
+
+                return [
+                    'buyer_name' => $latest->buyer_name,
+                    'buyer_email' => $latest->buyer_email,
+                    'buyer_phone' => $latest->buyer_phone,
+                    'is_registered' => $isRegistered,
+                    'total_orders' => $totalOrders,
+                    'paid_orders' => $paidCount,
+                    'tickets_bought' => $ticketsBought,
+                    'total_tickets_all' => $totalTicketsAll,
+                    'total_spent' => $totalSpent,
+                    'events_ordered' => $eventNames,
+                    'channels_used' => $channels,
+                    'last_order_at' => $latest->created_at,
+                    'description' => sprintf(
+                        '%s telah melakukan %d kali transaksi (%d lunas) dengan total %d tiket senilai Rp %s pada program: %s.',
+                        $latest->buyer_name,
+                        $totalOrders,
+                        $paidCount,
+                        $totalTicketsAll,
+                        number_format($totalSpent, 0, ',', '.'),
+                        implode(', ', $eventNames)
+                    ),
+                ];
+            })
+            ->sortByDesc(fn (array $b): array => [$b['total_spent'], $b['tickets_bought'], $b['total_orders']])
+            ->values();
+
+        // 4. Payment Channel Distribution
+        $paidOrdersAll = $allOrders->where('status', 'paid');
+        $paymentChannelStats = $paidOrdersAll
+            ->groupBy(fn (Order $o): string => $o->paymentChannelLabel())
+            ->map(function ($group, string $channelLabel) use ($totalPaidRevenue): array {
+                $rev = (int) $group->sum('total_amount');
+
+                return [
+                    'channel' => $channelLabel,
+                    'orders_count' => $group->count(),
+                    'tickets_count' => (int) $group->sum('ticket_qty'),
+                    'revenue' => $rev,
+                    'share_pct' => (int) round(($rev / $totalPaidRevenue) * 100),
+                ];
+            })
+            ->sortByDesc('revenue')
+            ->values();
+
+        return view('admin.transactions.index', [
+            'allOrders' => $allOrders,
+            'filteredOrders' => $filteredOrders,
+            'events' => $events,
+            'monthlyReport' => $monthlyReport,
+            'maxMonthlyRevenue' => $maxMonthlyRevenue,
+            'maxMonthlyTickets' => $maxMonthlyTickets,
+            'eventRankings' => $eventRankings,
+            'buyerSummaries' => $buyerSummaries,
+            'paymentChannelStats' => $paymentChannelStats,
+            'selectedMonth' => $selectedMonth,
+            'selectedEventId' => $selectedEventId,
+            'selectedStatus' => $selectedStatus,
+            'search' => $search,
         ]);
     }
 
@@ -125,7 +375,7 @@ class AdminDashboardController extends Controller
 
         if ($oldStatus !== $newStatus) {
             if ($newStatus === 'paid') {
-                $this->midtransService->handleNotification([
+                $order = $this->midtransService->handleNotification([
                     'order_id' => $order->order_code,
                     'transaction_status' => 'settlement',
                     'payment_type' => 'manual_admin_verification',
@@ -145,7 +395,7 @@ class AdminDashboardController extends Controller
             ], $request);
         }
 
-        return back()->with('status', "Status pesanan {$order->order_code} berhasil diperbarui menjadi {$order->fresh()->statusLabel()}.");
+        return back()->with('status', "Status pesanan {$order->order_code} berhasil diperbarui menjadi {$order->statusLabel()}.");
     }
 
     /**
@@ -154,7 +404,9 @@ class AdminDashboardController extends Controller
     public function events(): View
     {
         $events = Event::withCount('schedules')
-            ->with('schedules')
+            ->withExists(['schedules as has_valid_schedules' => function ($query): void {
+                $query->where('quota_total', '>', 0);
+            }])
             ->orderByDesc('id')
             ->get();
 
@@ -366,14 +618,25 @@ class AdminDashboardController extends Controller
      */
     public function scanner(): View
     {
-        $recentCheckIns = \App\Models\Ticket::with(['order.schedule.event'])
+        $recentCheckIns = \App\Models\Ticket::with([
+            'order:id,schedule_id,order_code,buyer_name',
+            'order.schedule:id,event_id,tour_date,session_code',
+            'order.schedule.event:id,title',
+        ])
             ->where('status', 'used')
             ->latest('checked_in_at')
             ->limit(10)
             ->get();
 
+        $sampleValidTickets = \App\Models\Ticket::with('order:id,buyer_name')
+            ->select(['id', 'order_id', 'ticket_code', 'qr_payload', 'status'])
+            ->where('status', 'valid')
+            ->limit(4)
+            ->get();
+
         return view('admin.tickets.scanner', [
             'recentCheckIns' => $recentCheckIns,
+            'sampleValidTickets' => $sampleValidTickets,
         ]);
     }
 
@@ -422,7 +685,7 @@ class AdminDashboardController extends Controller
      */
     public function editProfile(): View
     {
-        $profile = CompanyProfile::first();
+        $profile = CompanyProfile::current();
         $galleryItems = GalleryItem::orderBy('sort_order')->get();
 
         return view('admin.profile.edit', [
@@ -480,7 +743,7 @@ class AdminDashboardController extends Controller
     }
 
     /**
-     * Add a gallery item to Company Profile (FR-12) supporting JPG/PNG file uploads.
+     * Add a gallery item to Company Profile (FR-12) supporting single or multiple JPG/PNG file uploads.
      */
     public function storeGallery(Request $request): RedirectResponse
     {
@@ -490,52 +753,266 @@ class AdminDashboardController extends Controller
             'category' => ['required', 'string', 'max:80'],
             'year_label' => ['nullable', 'string', 'max:40'],
             'image_file' => ['nullable', 'file', 'mimes:jpg,jpeg,png', 'max:5120'],
+            'image_files' => ['nullable', 'array'],
+            'image_files.*' => ['file', 'mimes:jpg,jpeg,png', 'max:5120'],
             'image_url' => ['nullable', 'string', 'max:255'],
         ], [
             'image_file.mimes' => 'Format foto wajib berupa JPG, JPEG, atau PNG.',
             'image_file.max' => 'Ukuran file foto maksimal 5 MB.',
+            'image_files.*.mimes' => 'Setiap foto wajib berformat JPG, JPEG, atau PNG.',
+            'image_files.*.max' => 'Ukuran setiap foto maksimal 5 MB.',
         ]);
 
-        $imageUrl = ($validated['image_url'] ?? null) ?: null;
+        $photos = [];
 
         if ($request->hasFile('image_file')) {
             $storedPath = $request->file('image_file')->store('gallery', 'public');
             if ($storedPath !== false) {
-                $imageUrl = '/storage/' . ltrim($storedPath, '/');
+                $photos[] = '/storage/' . ltrim($storedPath, '/');
             }
         }
+
+        if ($request->hasFile('image_files')) {
+            foreach ($request->file('image_files') as $file) {
+                $storedPath = $file->store('gallery', 'public');
+                if ($storedPath !== false) {
+                    $photos[] = '/storage/' . ltrim($storedPath, '/');
+                }
+            }
+        }
+
+        if (! empty($validated['image_url'])) {
+            $photos[] = $validated['image_url'];
+        }
+
+        $primaryImageUrl = $photos[0] ?? null;
 
         $galleryItem = GalleryItem::create([
             'title' => $validated['title'],
             'caption' => $validated['caption'] ?? null,
             'category' => $validated['category'],
             'year_label' => ($validated['year_label'] ?? null) ?: 'Arsip PG Candi Baru',
-            'image_url' => $imageUrl,
+            'image_url' => $primaryImageUrl,
+            'photos' => $photos,
             'sort_order' => ((int) GalleryItem::max('sort_order')) + 1,
             'is_active' => true,
         ]);
 
         $this->recordAudit('gallery.created', 'GalleryItem', $galleryItem->id, null, [
             'title' => $galleryItem->title,
-            'image_url' => $galleryItem->image_url,
+            'photos_count' => count($photos),
         ], $request);
 
-        return back()->with('status', 'Item galeri heritage berhasil ditambahkan.');
+        return back()->with('status', 'Koleksi galeri heritage berhasil ditambahkan (' . max(1, count($photos)) . ' foto).');
     }
 
     /**
-     * Delete a gallery item and its stored image file if uploaded locally (FR-12).
+     * Append additional JPG/PNG photos to an existing gallery item.
+     */
+    public function addGalleryPhotos(Request $request, GalleryItem $galleryItem): RedirectResponse
+    {
+        $request->validate([
+            'image_files' => ['required', 'array', 'min:1'],
+            'image_files.*' => ['file', 'mimes:jpg,jpeg,png', 'max:5120'],
+        ], [
+            'image_files.required' => 'Pilih minimal 1 file foto JPG/PNG.',
+            'image_files.*.mimes' => 'Setiap foto wajib berformat JPG, JPEG, atau PNG.',
+            'image_files.*.max' => 'Ukuran setiap foto maksimal 5 MB.',
+        ]);
+
+        $existingPhotos = is_array($galleryItem->photos) ? $galleryItem->photos : [];
+        if ($galleryItem->image_url && ! in_array($galleryItem->image_url, $existingPhotos, true)) {
+            array_unshift($existingPhotos, $galleryItem->image_url);
+        }
+
+        foreach ($request->file('image_files') as $file) {
+            $storedPath = $file->store('gallery', 'public');
+            if ($storedPath !== false) {
+                $existingPhotos[] = '/storage/' . ltrim($storedPath, '/');
+            }
+        }
+
+        $galleryItem->update([
+            'image_url' => $existingPhotos[0] ?? $galleryItem->image_url,
+            'photos' => array_values(array_unique($existingPhotos)),
+        ]);
+
+        return back()->with('status', 'Foto tambahan berhasil dimasukkan ke galeri "' . $galleryItem->title . '".');
+    }
+
+    /**
+     * Delete a gallery item and all its stored image files if uploaded locally (FR-12).
      */
     public function deleteGallery(GalleryItem $galleryItem): RedirectResponse
     {
-        if ($galleryItem->image_url && str_starts_with($galleryItem->image_url, '/storage/gallery/')) {
-            $relativePath = ltrim(substr($galleryItem->image_url, strlen('/storage/')), '/');
-            Storage::disk('public')->delete($relativePath);
+        $allUrls = is_array($galleryItem->photos) ? $galleryItem->photos : [];
+        if ($galleryItem->image_url) {
+            $allUrls[] = $galleryItem->image_url;
+        }
+
+        foreach (array_unique($allUrls) as $url) {
+            if (is_string($url) && str_starts_with($url, '/storage/gallery/')) {
+                $relativePath = ltrim(substr($url, strlen('/storage/')), '/');
+                Storage::disk('public')->delete($relativePath);
+            }
         }
 
         $galleryItem->delete();
 
         return back()->with('status', 'Item galeri berhasil dihapus.');
+    }
+
+    /**
+     * List all articles in the Admin Dashboard.
+     */
+    public function articles(): View
+    {
+        $articles = Article::query()
+            ->select([
+                'id',
+                'slug',
+                'title',
+                'category',
+                'author_name',
+                'cover_image',
+                'reading_time_minutes',
+                'is_published',
+                'published_at',
+                'created_at',
+            ])
+            ->latest('published_at')
+            ->latest('id')
+            ->get();
+
+        return view('admin.articles.index', [
+            'articles' => $articles,
+        ]);
+    }
+
+    /**
+     * Render create or edit form for an Article.
+     */
+    public function editArticle(?Article $article = null): View
+    {
+        return view('admin.articles.form', [
+            'article' => $article,
+        ]);
+    }
+
+    /**
+     * Store a new article or update an existing one, supporting JPG/PNG cover uploads.
+     */
+    public function saveArticle(Request $request, ?Article $article = null): RedirectResponse
+    {
+        $isUpdate = ($article !== null && $article->exists);
+
+        $validated = $request->validate([
+            'title' => ['required', 'string', 'max:200'],
+            'slug' => ['nullable', 'string', 'max:180'],
+            'category' => ['required', 'string', 'max:80'],
+            'author_name' => ['required', 'string', 'max:120'],
+            'excerpt' => ['required', 'string', 'max:600'],
+            'content' => ['required', 'string'],
+            'reading_time_minutes' => ['nullable', 'integer', 'min:1', 'max:60'],
+            'is_published' => ['nullable', 'boolean'],
+            'cover_file' => ['nullable', 'file', 'mimes:jpg,jpeg,png', 'max:5120'],
+        ], [
+            'cover_file.mimes' => 'Foto sampul artikel wajib berformat JPG, JPEG, atau PNG.',
+            'cover_file.max' => 'Ukuran foto sampul maksimal 5 MB.',
+        ]);
+
+        $slug = ! empty($validated['slug'])
+            ? Str::slug($validated['slug'])
+            : Str::slug($validated['title']);
+
+        $slugQuery = Article::where('slug', $slug);
+        if ($isUpdate) {
+            $slugQuery->where('id', '!=', $article->id);
+        }
+        if ($slugQuery->exists()) {
+            $slug .= '-' . strtolower(Str::random(4));
+        }
+
+        $coverUrl = $isUpdate ? $article->cover_image : null;
+        if ($request->hasFile('cover_file')) {
+            $storedPath = $request->file('cover_file')->store('articles', 'public');
+            if ($storedPath !== false) {
+                $coverUrl = '/storage/' . ltrim($storedPath, '/');
+            }
+        }
+
+        $wordCount = str_word_count(strip_tags($validated['content']));
+        $readingTime = ! empty($validated['reading_time_minutes'])
+            ? (int) $validated['reading_time_minutes']
+            : max(1, (int) ceil($wordCount / 180));
+
+        $isPublished = $request->boolean('is_published', true);
+
+        if ($isUpdate) {
+            $oldValues = $article->only(['title', 'category', 'is_published']);
+            $article->update([
+                'title' => $validated['title'],
+                'slug' => $slug,
+                'category' => $validated['category'],
+                'author_name' => $validated['author_name'],
+                'excerpt' => $validated['excerpt'],
+                'content' => $validated['content'],
+                'cover_image' => $coverUrl,
+                'reading_time_minutes' => $readingTime,
+                'is_published' => $isPublished,
+                'published_at' => $article->published_at ?? ($isPublished ? now() : null),
+            ]);
+
+            $this->recordAudit('article.updated', 'Article', $article->id, $oldValues, [
+                'title' => $article->title,
+                'category' => $article->category,
+                'is_published' => $article->is_published,
+            ], $request);
+
+            return redirect()->route('admin.articles.edit', $article)
+                ->with('status', 'Artikel "' . $article->title . '" berhasil diperbarui.');
+        }
+
+        $newArticle = Article::create([
+            'title' => $validated['title'],
+            'slug' => $slug,
+            'category' => $validated['category'],
+            'author_name' => $validated['author_name'],
+            'excerpt' => $validated['excerpt'],
+            'content' => $validated['content'],
+            'cover_image' => $coverUrl,
+            'reading_time_minutes' => $readingTime,
+            'is_published' => $isPublished,
+            'published_at' => $isPublished ? now() : null,
+        ]);
+
+        $this->recordAudit('article.created', 'Article', $newArticle->id, null, [
+            'title' => $newArticle->title,
+            'slug' => $newArticle->slug,
+        ], $request);
+
+        return redirect()->route('admin.articles.index')
+            ->with('status', 'Artikel baru "' . $newArticle->title . '" berhasil diterbitkan.');
+    }
+
+    /**
+     * Delete an article and its uploaded cover file.
+     */
+    public function deleteArticle(Request $request, Article $article): RedirectResponse
+    {
+        if ($article->cover_image && str_starts_with($article->cover_image, '/storage/articles/')) {
+            $relativePath = ltrim(substr($article->cover_image, strlen('/storage/')), '/');
+            Storage::disk('public')->delete($relativePath);
+        }
+
+        $title = $article->title;
+        $id = $article->id;
+        $article->delete();
+
+        $this->recordAudit('article.deleted', 'Article', $id, ['title' => $title], null, $request);
+
+        return redirect()->route('admin.articles.index')
+            ->with('status', 'Artikel "' . $title . '" berhasil dihapus.');
     }
 
     /**

@@ -126,7 +126,8 @@ class MidtransService
     {
         return DB::transaction(function () use ($payload): Order {
             /** @var Order $order */
-            $order = Order::where('order_code', $payload['order_id'])
+            $order = Order::with(['tickets', 'schedule.event'])
+                ->where('order_code', $payload['order_id'])
                 ->orWhere('midtrans_order_id', $payload['order_id'])
                 ->lockForUpdate()
                 ->firstOrFail();
@@ -147,7 +148,8 @@ class MidtransService
                     'paid_at' => now(),
                 ]);
 
-                $this->ticketService->issueTicketsForOrder($order);
+                $tickets = $this->ticketService->issueTicketsForOrder($order);
+                $order->setRelation('tickets', $tickets);
 
                 AdminNotification::create([
                     'type' => 'payment_received',
@@ -164,6 +166,7 @@ class MidtransService
                     'midtrans_txn_id' => $txnId,
                 ]);
                 $order->tickets()->update(['status' => 'void']);
+                $order->tickets->each(fn ($t) => $t->status = 'void');
             } elseif (in_array($txnStatus, ['cancel', 'deny'], true)) {
                 $this->releaseScheduleQuota($order);
                 $order->update([
@@ -172,9 +175,10 @@ class MidtransService
                     'midtrans_txn_id' => $txnId,
                 ]);
                 $order->tickets()->update(['status' => 'void']);
+                $order->tickets->each(fn ($t) => $t->status = 'void');
             }
 
-            return $order->fresh(['tickets', 'schedule.event']);
+            return $order;
         });
     }
 
