@@ -127,6 +127,229 @@ class AdminDashboardController extends Controller
     }
 
     /**
+     * Render detailed Monthly Transaction Report, Per-Buyer Transaction Descriptions, and Most Popular Events Analytics.
+     */
+    public function transactions(Request $request): View
+    {
+        $allOrders = Order::with([
+            'schedule:id,event_id,tour_date,session_code,start_time,end_time',
+            'schedule.event:id,title,slug,ticket_price',
+        ])
+            ->latest('created_at')
+            ->get();
+
+        $events = Event::query()
+            ->select(['id', 'title', 'slug', 'ticket_price', 'status'])
+            ->where('status', 'active')
+            ->orderBy('id')
+            ->get();
+
+        // Filter parameters for the detailed transactions table
+        $selectedMonth = (string) $request->query('month', '');
+        $selectedEventId = $request->integer('event_id') ?: null;
+        $selectedStatus = (string) $request->query('status', '');
+        $search = trim((string) $request->query('search', ''));
+
+        $filteredOrders = $allOrders->filter(function (Order $order) use ($selectedMonth, $selectedEventId, $selectedStatus, $search): bool {
+            if ($selectedMonth !== '') {
+                $orderMonth = ($order->paid_at ?? $order->created_at)?->format('Y-m');
+                if ($orderMonth !== $selectedMonth) {
+                    return false;
+                }
+            }
+
+            if ($selectedEventId !== null && $order->schedule?->event_id !== $selectedEventId) {
+                return false;
+            }
+
+            if ($selectedStatus !== '' && $order->status !== $selectedStatus) {
+                return false;
+            }
+
+            if ($search !== '') {
+                $haystack = strtolower($order->order_code . ' ' . $order->buyer_name . ' ' . $order->buyer_email);
+                if (! str_contains($haystack, strtolower($search))) {
+                    return false;
+                }
+            }
+
+            return true;
+        })->values();
+
+        // 1. Build 6-Month Report Series (chronological & reverse-chronological)
+        $monthKeys = collect();
+        for ($i = 5; $i >= 0; $i--) {
+            $monthKeys->push(now()->subMonths($i)->format('Y-m'));
+        }
+        foreach ($allOrders as $order) {
+            $mKey = ($order->paid_at ?? $order->created_at)?->format('Y-m');
+            if ($mKey && ! $monthKeys->contains($mKey)) {
+                $monthKeys->push($mKey);
+            }
+        }
+        $monthKeys = $monthKeys->sort()->values();
+
+        $monthlyReport = $monthKeys->map(function (string $monthKey) use ($allOrders): array {
+            $monthDate = \Illuminate\Support\Carbon::createFromFormat('Y-m-d', $monthKey . '-01');
+            $monthOrders = $allOrders->filter(fn (Order $o): bool => (($o->paid_at ?? $o->created_at)?->format('Y-m')) === $monthKey);
+            $paidMonthOrders = $monthOrders->where('status', 'paid');
+            $pendingMonthOrders = $monthOrders->where('status', 'pending');
+            $voidMonthOrders = $monthOrders->whereIn('status', ['expired', 'cancelled']);
+
+            $topEventGroup = $monthOrders
+                ->groupBy(fn (Order $o): string => $o->schedule?->event?->title ?? 'Lainnya')
+                ->sortByDesc(fn ($group): int => (int) $group->sum('ticket_qty'));
+
+            $topEventTitle = $topEventGroup->keys()->first() ?? '-';
+            $topEventTickets = $topEventGroup->first() ? (int) $topEventGroup->first()->sum('ticket_qty') : 0;
+
+            $totalCount = $monthOrders->count();
+            $paidCount = $paidMonthOrders->count();
+
+            return [
+                'month_key' => $monthKey,
+                'month_label' => $monthDate->translatedFormat('F Y'),
+                'short_label' => $monthDate->translatedFormat('M Y'),
+                'total_orders' => $totalCount,
+                'paid_orders' => $paidCount,
+                'pending_orders' => $pendingMonthOrders->count(),
+                'void_orders' => $voidMonthOrders->count(),
+                'tickets_sold' => (int) $paidMonthOrders->sum('ticket_qty'),
+                'revenue' => (int) $paidMonthOrders->sum('total_amount'),
+                'pending_amount' => (int) $pendingMonthOrders->sum('total_amount'),
+                'conversion_rate' => $totalCount > 0 ? (int) round(($paidCount / $totalCount) * 100) : 0,
+                'top_event_title' => $topEventTitle,
+                'top_event_tickets' => $topEventTickets,
+            ];
+        })->values();
+
+        $maxMonthlyRevenue = max(1, (int) $monthlyReport->max('revenue'));
+        $maxMonthlyTickets = max(1, (int) $monthlyReport->max('tickets_sold'));
+
+        // 2. Most Frequently Ordered Events Ranking (based on filtered or all orders)
+        $totalOrdersCount = max(1, $allOrders->count());
+        $totalPaidTickets = max(1, (int) $allOrders->where('status', 'paid')->sum('ticket_qty'));
+        $totalPaidRevenue = max(1, (int) $allOrders->where('status', 'paid')->sum('total_amount'));
+
+        $eventRankings = $events->map(function (Event $event) use ($allOrders, $totalOrdersCount, $totalPaidTickets, $totalPaidRevenue): array {
+            $eventOrders = $allOrders->filter(fn (Order $o): bool => $o->schedule?->event_id === $event->id);
+            $paidEventOrders = $eventOrders->where('status', 'paid');
+
+            $ordersCount = $eventOrders->count();
+            $paidCount = $paidEventOrders->count();
+            $ticketsSold = (int) $paidEventOrders->sum('ticket_qty');
+            $totalTicketsRequested = (int) $eventOrders->sum('ticket_qty');
+            $revenue = (int) $paidEventOrders->sum('total_amount');
+            $uniqueBuyers = $eventOrders->pluck('buyer_email')->map(fn ($e): string => strtolower((string) $e))->unique()->count();
+
+            return [
+                'event_id' => $event->id,
+                'title' => $event->title,
+                'slug' => $event->slug,
+                'ticket_price' => $event->ticket_price,
+                'total_orders' => $ordersCount,
+                'paid_orders' => $paidCount,
+                'tickets_sold' => $ticketsSold,
+                'total_tickets_requested' => $totalTicketsRequested,
+                'revenue' => $revenue,
+                'unique_buyers' => $uniqueBuyers,
+                'avg_tickets_per_order' => $ordersCount > 0 ? round($totalTicketsRequested / $ordersCount, 1) : 0.0,
+                'order_share_pct' => (int) round(($ordersCount / $totalOrdersCount) * 100),
+                'ticket_share_pct' => (int) round(($ticketsSold / $totalPaidTickets) * 100),
+                'revenue_share_pct' => (int) round(($revenue / $totalPaidRevenue) * 100),
+            ];
+        })->sortByDesc(fn (array $item): array => [$item['tickets_sold'], $item['total_orders'], $item['revenue']])->values();
+
+        // 3. Per-Buyer Transaction Summary (Accumulated Activity per Customer)
+        $buyerSummaries = $allOrders
+            ->groupBy(fn (Order $o): string => strtolower(trim($o->buyer_email)))
+            ->map(function ($buyerOrders): array {
+                /** @var Order $latest */
+                $latest = $buyerOrders->first();
+                $paidOrders = $buyerOrders->where('status', 'paid');
+                $totalOrders = $buyerOrders->count();
+                $paidCount = $paidOrders->count();
+                $ticketsBought = (int) $paidOrders->sum('ticket_qty');
+                $totalTicketsAll = (int) $buyerOrders->sum('ticket_qty');
+                $totalSpent = (int) $paidOrders->sum('total_amount');
+
+                $eventNames = $buyerOrders
+                    ->map(fn (Order $o): string => $o->schedule?->event?->title ?? 'Event Tour')
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                $channels = $buyerOrders
+                    ->map(fn (Order $o): string => $o->paymentChannelLabel())
+                    ->unique()
+                    ->values()
+                    ->all();
+
+                $isRegistered = $buyerOrders->contains(fn (Order $o): bool => $o->user_id !== null);
+
+                return [
+                    'buyer_name' => $latest->buyer_name,
+                    'buyer_email' => $latest->buyer_email,
+                    'buyer_phone' => $latest->buyer_phone,
+                    'is_registered' => $isRegistered,
+                    'total_orders' => $totalOrders,
+                    'paid_orders' => $paidCount,
+                    'tickets_bought' => $ticketsBought,
+                    'total_tickets_all' => $totalTicketsAll,
+                    'total_spent' => $totalSpent,
+                    'events_ordered' => $eventNames,
+                    'channels_used' => $channels,
+                    'last_order_at' => $latest->created_at,
+                    'description' => sprintf(
+                        '%s telah melakukan %d kali transaksi (%d lunas) dengan total %d tiket senilai Rp %s pada program: %s.',
+                        $latest->buyer_name,
+                        $totalOrders,
+                        $paidCount,
+                        $totalTicketsAll,
+                        number_format($totalSpent, 0, ',', '.'),
+                        implode(', ', $eventNames)
+                    ),
+                ];
+            })
+            ->sortByDesc(fn (array $b): array => [$b['total_spent'], $b['tickets_bought'], $b['total_orders']])
+            ->values();
+
+        // 4. Payment Channel Distribution
+        $paidOrdersAll = $allOrders->where('status', 'paid');
+        $paymentChannelStats = $paidOrdersAll
+            ->groupBy(fn (Order $o): string => $o->paymentChannelLabel())
+            ->map(function ($group, string $channelLabel) use ($totalPaidRevenue): array {
+                $rev = (int) $group->sum('total_amount');
+
+                return [
+                    'channel' => $channelLabel,
+                    'orders_count' => $group->count(),
+                    'tickets_count' => (int) $group->sum('ticket_qty'),
+                    'revenue' => $rev,
+                    'share_pct' => (int) round(($rev / $totalPaidRevenue) * 100),
+                ];
+            })
+            ->sortByDesc('revenue')
+            ->values();
+
+        return view('admin.transactions.index', [
+            'allOrders' => $allOrders,
+            'filteredOrders' => $filteredOrders,
+            'events' => $events,
+            'monthlyReport' => $monthlyReport,
+            'maxMonthlyRevenue' => $maxMonthlyRevenue,
+            'maxMonthlyTickets' => $maxMonthlyTickets,
+            'eventRankings' => $eventRankings,
+            'buyerSummaries' => $buyerSummaries,
+            'paymentChannelStats' => $paymentChannelStats,
+            'selectedMonth' => $selectedMonth,
+            'selectedEventId' => $selectedEventId,
+            'selectedStatus' => $selectedStatus,
+            'search' => $search,
+        ]);
+    }
+
+    /**
      * Manual order status update by Admin with audit logging (FR-14).
      */
     public function updateOrderStatus(Request $request, Order $order): RedirectResponse

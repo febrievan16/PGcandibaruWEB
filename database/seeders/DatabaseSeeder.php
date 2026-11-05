@@ -144,6 +144,23 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
+        $event3 = Event::updateOrCreate(
+            ['slug' => 'kunjungan-studi-akademik-proses-kristalisasi'],
+            [
+                'title' => 'Kunjungan Studi Akademik & Observasi Kristalisasi Gula',
+                'description' => 'Program kunjungan terstruktur khusus perguruan tinggi, sekolah kejuruan, dan peneliti agroindustri untuk mempelajari neraca massa tebu, pemurnian nira, penguapan vakum, hingga sentrifugasi kristal gula.',
+                'highlights' => [
+                    'Pemaparan diagram alir proses produksi & kendali mutu laboratorium',
+                    'Kunjungan langsung ke Stasiun Pemurnian, Penguapan, dan Masakan',
+                    'Sesi tanya jawab teknis bersama insinyur proses PT PG Candi Baru',
+                ],
+                'duration_minutes' => 180,
+                'meeting_point' => 'Aula Edukasi & Laboratorium PG Candi Baru',
+                'ticket_price' => 65000,
+                'status' => 'active',
+            ]
+        );
+
         // Draft event with TBD price/quota = 0 to demonstrate FR-04 / TASK-12 activation guard
         Event::updateOrCreate(
             ['slug' => 'tur-khusus-musim-giling-tbd'],
@@ -221,13 +238,24 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        Schedule::updateOrCreate(
+        $sEvent2 = Schedule::updateOrCreate(
             ['event_id' => $event2->id, 'tour_date' => $date3, 'session_code' => 'PAGI'],
             [
                 'start_time' => '08:30:00',
                 'end_time' => '11:00:00',
                 'quota_total' => 25,
-                'quota_booked' => 5,
+                'quota_booked' => 14,
+                'status' => 'open',
+            ]
+        );
+
+        $sEvent3 = Schedule::updateOrCreate(
+            ['event_id' => $event3->id, 'tour_date' => $date2, 'session_code' => 'PAGI'],
+            [
+                'start_time' => '08:00:00',
+                'end_time' => '11:00:00',
+                'quota_total' => 45,
+                'quota_booked' => 20,
                 'status' => 'open',
             ]
         );
@@ -249,7 +277,7 @@ class DatabaseSeeder extends Seeder
                 'midtrans_order_id' => 'GT-' . $date1->format('Ymd') . '-DEMO01',
                 'midtrans_txn_id' => 'MID-DEMO-SETTLED01',
                 'snap_token' => '66e4fa55-demo-settled-01',
-                'payment_channel' => 'bank_transfer',
+                'payment_channel' => 'bank_transfer_bca',
                 'paid_at' => now()->subHours(2),
                 'expires_at' => now()->addHours(1),
             ]
@@ -273,9 +301,201 @@ class DatabaseSeeder extends Seeder
                 'status' => 'pending',
                 'midtrans_order_id' => 'GT-' . $date2->format('Ymd') . '-DEMO02',
                 'snap_token' => '66e4fa55-demo-pending-02',
+                'payment_channel' => 'ewallet_qris',
                 'expires_at' => now()->addMinutes(15),
             ]
         );
+
+        // Additional historical & current-month transactions across multiple buyers and events for Monthly Report Analytics
+        $historicalTransactions = [
+            [
+                'order_code' => 'GT-20261103-HIST01',
+                'idempotency_key' => 'seed-hist-001',
+                'access_token' => 'demo-access-token-hist-001',
+                'schedule_id' => $s1->id,
+                'user_id' => $visitor->id,
+                'buyer_name' => $visitor->name,
+                'buyer_email' => $visitor->email,
+                'buyer_phone' => (string) $visitor->phone,
+                'ticket_qty' => 6,
+                'unit_price' => 75000,
+                'total_amount' => 450000,
+                'status' => 'paid',
+                'payment_channel' => 'ewallet_qris',
+                'created_at' => now()->subDays(2),
+                'paid_at' => now()->subDays(2)->addMinutes(5),
+            ],
+            [
+                'order_code' => 'GT-20261101-HIST02',
+                'idempotency_key' => 'seed-hist-002',
+                'access_token' => 'demo-access-token-hist-002',
+                'schedule_id' => $s2->id,
+                'user_id' => null,
+                'buyer_name' => 'Dr. Hendra Wijaya (Rombongan Teknik Kimia ITS)',
+                'buyer_email' => 'hendra.wijaya@akademik.ac.id',
+                'buyer_phone' => '081134567899',
+                'ticket_qty' => 15,
+                'unit_price' => 75000,
+                'total_amount' => 1125000,
+                'status' => 'paid',
+                'payment_channel' => 'bank_transfer_mandiri',
+                'created_at' => now()->subDays(4),
+                'paid_at' => now()->subDays(4)->addMinutes(10),
+            ],
+            [
+                'order_code' => 'GT-20261024-HIST03',
+                'idempotency_key' => 'seed-hist-003',
+                'access_token' => 'demo-access-token-hist-003',
+                'schedule_id' => $sEvent2->id,
+                'user_id' => null,
+                'buyer_name' => 'Komunitas Jelajah Pusaka Surabaya',
+                'buyer_email' => 'pusaka.sby@komunitas.id',
+                'buyer_phone' => '081299887766',
+                'ticket_qty' => 9,
+                'unit_price' => 95000,
+                'total_amount' => 855000,
+                'status' => 'paid',
+                'payment_channel' => 'bank_transfer_bca',
+                'created_at' => now()->subMonth()->startOfMonth()->addDays(18),
+                'paid_at' => now()->subMonth()->startOfMonth()->addDays(18)->addMinutes(8),
+            ],
+            [
+                'order_code' => 'GT-20261015-HIST04',
+                'idempotency_key' => 'seed-hist-004',
+                'access_token' => 'demo-access-token-hist-004',
+                'schedule_id' => $s1->id,
+                'user_id' => null,
+                'buyer_name' => 'SMA Negeri 1 Sidoarjo (Kunjungan Edukasi)',
+                'buyer_email' => 'humas@sman1sidoarjo.sch.id',
+                'buyer_phone' => '081330405060',
+                'ticket_qty' => 24,
+                'unit_price' => 75000,
+                'total_amount' => 1800000,
+                'status' => 'paid',
+                'payment_channel' => 'bank_transfer_bca',
+                'created_at' => now()->subMonth()->startOfMonth()->addDays(11),
+                'paid_at' => now()->subMonth()->startOfMonth()->addDays(11)->addMinutes(12),
+            ],
+            [
+                'order_code' => 'GT-20261009-HIST05',
+                'idempotency_key' => 'seed-hist-005',
+                'access_token' => 'demo-access-token-hist-005',
+                'schedule_id' => $sEvent3->id,
+                'user_id' => null,
+                'buyer_name' => 'Fakultas Teknologi Pertanian UB',
+                'buyer_email' => 'ftp.studi@ub.ac.id',
+                'buyer_phone' => '081233445566',
+                'ticket_qty' => 20,
+                'unit_price' => 65000,
+                'total_amount' => 1300000,
+                'status' => 'paid',
+                'payment_channel' => 'bank_transfer_bni',
+                'created_at' => now()->subMonth()->startOfMonth()->addDays(5),
+                'paid_at' => now()->subMonth()->startOfMonth()->addDays(5)->addMinutes(7),
+            ],
+            [
+                'order_code' => 'GT-20260920-HIST06',
+                'idempotency_key' => 'seed-hist-006',
+                'access_token' => 'demo-access-token-hist-006',
+                'schedule_id' => $s2->id,
+                'user_id' => null,
+                'buyer_name' => 'Bambang Pamungkas & Keluarga',
+                'buyer_email' => 'bambang.p@example.com',
+                'buyer_phone' => '081788990011',
+                'ticket_qty' => 10,
+                'unit_price' => 75000,
+                'total_amount' => 750000,
+                'status' => 'paid',
+                'payment_channel' => 'credit_card',
+                'created_at' => now()->subMonths(2)->startOfMonth()->addDays(14),
+                'paid_at' => now()->subMonths(2)->startOfMonth()->addDays(14)->addMinutes(4),
+            ],
+            [
+                'order_code' => 'GT-20260912-HIST07',
+                'idempotency_key' => 'seed-hist-007',
+                'access_token' => 'demo-access-token-hist-007',
+                'schedule_id' => $sEvent2->id,
+                'user_id' => null,
+                'buyer_name' => 'Klub Fotografi Analog Jawa Timur',
+                'buyer_email' => 'analog.jatim@example.com',
+                'buyer_phone' => '085644332211',
+                'ticket_qty' => 8,
+                'unit_price' => 95000,
+                'total_amount' => 760000,
+                'status' => 'paid',
+                'payment_channel' => 'ewallet_qris',
+                'created_at' => now()->subMonths(2)->startOfMonth()->addDays(8),
+                'paid_at' => now()->subMonths(2)->startOfMonth()->addDays(8)->addMinutes(6),
+            ],
+            [
+                'order_code' => 'GT-20260818-HIST08',
+                'idempotency_key' => 'seed-hist-008',
+                'access_token' => 'demo-access-token-hist-008',
+                'schedule_id' => $s1->id,
+                'user_id' => null,
+                'buyer_name' => 'SMK Negeri 2 Buduran Sidoarjo',
+                'buyer_email' => 'kunjungan@smkn2buduran.sch.id',
+                'buyer_phone' => '081555666777',
+                'ticket_qty' => 18,
+                'unit_price' => 75000,
+                'total_amount' => 1350000,
+                'status' => 'paid',
+                'payment_channel' => 'bank_transfer_bca',
+                'created_at' => now()->subMonths(3)->startOfMonth()->addDays(12),
+                'paid_at' => now()->subMonths(3)->startOfMonth()->addDays(12)->addMinutes(9),
+            ],
+            [
+                'order_code' => 'GT-20260805-HIST09',
+                'idempotency_key' => 'seed-hist-009',
+                'access_token' => 'demo-access-token-hist-009',
+                'schedule_id' => $sEvent2->id,
+                'user_id' => null,
+                'buyer_name' => 'Dewi Sartika',
+                'buyer_email' => 'dewi.sartika@example.com',
+                'buyer_phone' => '081900112233',
+                'ticket_qty' => 4,
+                'unit_price' => 95000,
+                'total_amount' => 380000,
+                'status' => 'expired',
+                'payment_channel' => 'bank_transfer_bca',
+                'created_at' => now()->subMonths(3)->startOfMonth()->addDays(3),
+                'paid_at' => null,
+            ],
+        ];
+
+        foreach ($historicalTransactions as $hist) {
+            $histOrder = Order::updateOrCreate(
+                ['order_code' => $hist['order_code']],
+                [
+                    'idempotency_key' => $hist['idempotency_key'],
+                    'access_token' => $hist['access_token'],
+                    'schedule_id' => $hist['schedule_id'],
+                    'user_id' => $hist['user_id'],
+                    'buyer_name' => $hist['buyer_name'],
+                    'buyer_email' => $hist['buyer_email'],
+                    'buyer_phone' => $hist['buyer_phone'],
+                    'ticket_qty' => $hist['ticket_qty'],
+                    'unit_price' => $hist['unit_price'],
+                    'total_amount' => $hist['total_amount'],
+                    'status' => $hist['status'],
+                    'midtrans_order_id' => $hist['order_code'],
+                    'midtrans_txn_id' => $hist['status'] === 'paid' ? 'MID-' . $hist['order_code'] : null,
+                    'snap_token' => '66e4fa55-' . strtolower($hist['order_code']),
+                    'payment_channel' => $hist['payment_channel'],
+                    'paid_at' => $hist['paid_at'],
+                    'expires_at' => $hist['created_at']->copy()->addMinutes(15),
+                ]
+            );
+
+            Order::whereKey($histOrder->id)->update([
+                'created_at' => $hist['created_at'],
+                'updated_at' => $hist['paid_at'] ?? $hist['created_at'],
+            ]);
+
+            if ($hist['status'] === 'paid') {
+                app(TicketService::class)->issueTicketsForOrder($histOrder);
+            }
+        }
 
         AdminNotification::updateOrCreate(
             ['title' => "Pembayaran Masuk: {$paidOrder->order_code}"],

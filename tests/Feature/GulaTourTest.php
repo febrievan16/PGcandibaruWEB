@@ -186,7 +186,7 @@ class GulaTourTest extends TestCase
      */
     public function test_order_access_isolation_for_guest_and_registered_user(): void
     {
-        $paidOrder = Order::where('status', 'paid')->firstOrFail();
+        $paidOrder = Order::where('status', 'paid')->whereNotNull('user_id')->firstOrFail();
 
         // Guest without token -> 403
         $this->getJson("/api/v1/orders/{$paidOrder->order_code}")
@@ -387,6 +387,7 @@ class GulaTourTest extends TestCase
         // Verify Admin routes (especially /admin/events where canBeActivated() runs in a loop, and /admin/orders master-detail)
         $adminRoutes = [
             '/admin' => 7,
+            '/admin/transactions' => 4,
             '/admin/orders' => 7,
             '/admin/events' => 2,
             '/admin/events/' . $event->id . '/edit' => 3,
@@ -405,6 +406,15 @@ class GulaTourTest extends TestCase
             $queryCount = count(\Illuminate\Support\Facades\DB::getQueryLog());
             $this->assertLessThanOrEqual($maxQueries, $queryCount, "Admin URI [{$uri}] executed {$queryCount} queries (expected <= {$maxQueries}).");
         }
+
+        // Verify monthly transaction report content & descriptions
+        $this->actingAs($admin)
+            ->get('/admin/transactions')
+            ->assertStatus(200)
+            ->assertSee('Peringkat Event Paling Sering Dipesan')
+            ->assertSee('Grafik Tren Pendapatan & Penjualan Tiket Bulanan', false)
+            ->assertSee('Ringkasan Akumulasi Transaksi dari Tiap Pemesan')
+            ->assertSee('Deskripsi Rinci Setiap Transaksi Pemesan');
     }
 }
 

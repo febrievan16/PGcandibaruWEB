@@ -57,6 +57,7 @@ Route::prefix('admin')
 
         Route::get('/orders', [AdminDashboardController::class, 'orders'])->name('orders.index');
         Route::post('/orders/{order}/status', [AdminDashboardController::class, 'updateOrderStatus'])->name('orders.status');
+        Route::get('/transactions', [AdminDashboardController::class, 'transactions'])->name('transactions.index');
 
         Route::get('/events', [AdminDashboardController::class, 'events'])->name('events.index');
         Route::get('/events/create', [AdminDashboardController::class, 'editEvent'])->name('events.create');

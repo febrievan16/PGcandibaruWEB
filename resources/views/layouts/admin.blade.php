@@ -40,6 +40,10 @@
                        class="px-3.5 py-2.5 text-sm font-medium rounded-[2px] whitespace-nowrap {{ request()->routeIs('admin.dashboard') ? 'bg-[#F3EAD8] text-[#6B3F1E] font-semibold border-l-2 border-[#6B3F1E]' : 'text-[#2A211A] hover:bg-[#F3EAD8]/60' }}">
                         Ringkasan & Kuota
                     </a>
+                    <a href="{{ route('admin.transactions.index') }}"
+                       class="px-3.5 py-2.5 text-sm font-medium rounded-[2px] whitespace-nowrap {{ request()->routeIs('admin.transactions.*') ? 'bg-[#F3EAD8] text-[#6B3F1E] font-semibold border-l-2 border-[#6B3F1E]' : 'text-[#2A211A] hover:bg-[#F3EAD8]/60' }}">
+                        Laporan & Data Transaksi
+                    </a>
                     <a href="{{ route('admin.orders.index') }}"
                        class="px-3.5 py-2.5 text-sm font-medium rounded-[2px] whitespace-nowrap {{ request()->routeIs('admin.orders.*') ? 'bg-[#F3EAD8] text-[#6B3F1E] font-semibold border-l-2 border-[#6B3F1E]' : 'text-[#2A211A] hover:bg-[#F3EAD8]/60' }}">
                         Daftar Pemesanan
