@@ -120,5 +120,25 @@ class Schedule extends Model
 
         return 'Tersedia';
     }
+
+    /**
+     * Normalized state key for filtering the Occupancy Table (`available`, `full`, `past`, `closed`).
+     */
+    public function occupancyStateKey(): string
+    {
+        if ($this->isPast()) {
+            return 'past';
+        }
+
+        if ($this->remainingQuota() <= 0 || $this->status === 'full') {
+            return 'full';
+        }
+
+        if ($this->status === 'closed') {
+            return 'closed';
+        }
+
+        return 'available';
+    }
 }
 

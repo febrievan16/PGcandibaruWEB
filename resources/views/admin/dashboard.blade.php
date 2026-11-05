@@ -61,11 +61,76 @@
         </div>
 
         <!-- Tabel Occupancy per Sesi (DESIGN.md §6 & FR-11) -->
-        <div class="space-y-3">
-            <div class="flex items-center justify-between">
-                <h2 class="font-serif text-xl font-bold text-[#2A211A]">Tabel Tingkat Keterisian Kuota per Sesi (Occupancy)</h2>
+        <div id="occupancy-section" class="space-y-3">
+            <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-3">
+                <div>
+                    <h2 class="font-serif text-xl font-bold text-[#2A211A]">Tabel Tingkat Keterisian Kuota per Sesi (Occupancy)</h2>
+                    <span id="occupancy-count-badge" class="text-xs text-[#6E635A] tabular-nums">
+                        Menampilkan {{ $schedules->count() }} dari {{ $schedules->count() }} sesi jadwal
+                    </span>
+                </div>
                 <a href="{{ route('admin.events.index') }}" class="link-heritage-tertiary text-xs">Kelola Jadwal & Kuota &rarr;</a>
             </div>
+
+            <!-- Filter Bar: Event Tour, Status Sesi, & Tampilkan Semua Data -->
+            <form id="occupancy-filter-form"
+                  action="{{ route('admin.dashboard') }}#occupancy-section"
+                  method="GET"
+                  class="border border-[#E3D9C9] bg-[#FFFFFF] p-4 grid grid-cols-1 sm:grid-cols-12 gap-3 items-end">
+                <div class="sm:col-span-5">
+                    <label for="occupancy_event_filter" class="block text-xs font-semibold uppercase tracking-wider text-[#6E635A] mb-1">
+                        Filter Berdasarkan Event Tour
+                    </label>
+                    <select id="occupancy_event_filter"
+                            name="event_id"
+                            class="input-heritage text-xs min-h-[38px]">
+                        <option value="all" @selected(($filterEventId ?? 'all') === 'all' || ($filterEventId ?? '') === '')>
+                            Tampilkan Semua Event Tour
+                        </option>
+                        @foreach($occupancyEvents ?? collect() as $ev)
+                            <option value="{{ $ev->id }}" @selected((string) ($filterEventId ?? '') === (string) $ev->id)>
+                                {{ $ev->title }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <div class="sm:col-span-4">
+                    <label for="occupancy_status_filter" class="block text-xs font-semibold uppercase tracking-wider text-[#6E635A] mb-1">
+                        Filter Berdasarkan Status Sesi
+                    </label>
+                    <select id="occupancy_status_filter"
+                            name="session_status"
+                            class="input-heritage text-xs min-h-[38px]">
+                        <option value="all" @selected(($filterSessionStatus ?? 'all') === 'all' || ($filterSessionStatus ?? '') === '')>
+                            Tampilkan Semua Status Sesi
+                        </option>
+                        <option value="available" @selected(($filterSessionStatus ?? '') === 'available')>
+                            Tersedia (Open)
+                        </option>
+                        <option value="full" @selected(($filterSessionStatus ?? '') === 'full')>
+                            Kuota Penuh (Full)
+                        </option>
+                        <option value="past" @selected(($filterSessionStatus ?? '') === 'past')>
+                            Sesi Berakhir (Lampau)
+                        </option>
+                        <option value="closed" @selected(($filterSessionStatus ?? '') === 'closed')>
+                            Ditutup (Closed)
+                        </option>
+                    </select>
+                </div>
+
+                <div class="sm:col-span-3 flex items-center gap-2">
+                    <button type="submit" class="btn-heritage-primary text-xs py-2 px-3 min-h-[38px] cursor-pointer">
+                        Terapkan
+                    </button>
+                    <button type="button"
+                            id="occupancy-reset-all-btn"
+                            class="btn-heritage-secondary text-xs py-2 px-3 min-h-[38px] cursor-pointer w-full">
+                        Tampilkan Semua Data
+                    </button>
+                </div>
+            </form>
 
             <div class="overflow-x-auto border border-[#E3D9C9] bg-[#FFFFFF]">
                 <table class="w-full text-sm text-left border-collapse">
@@ -81,14 +146,21 @@
                             <th class="py-3 px-4 font-semibold">Status Sesi</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-[#E3D9C9]">
+                    <tbody id="occupancy-table-body" class="divide-y divide-[#E3D9C9]">
                         @foreach($schedules as $schedule)
                             @php
                                 $pct = $schedule->quota_total > 0
                                     ? min(100, round(($schedule->quota_booked / $schedule->quota_total) * 100))
                                     : 0;
+                                $stateKey = $schedule->occupancyStateKey();
+                                $matchesEvent = (($filterEventId ?? 'all') === 'all' || ($filterEventId ?? '') === '' || (string) $schedule->event_id === (string) $filterEventId);
+                                $matchesStatus = (($filterSessionStatus ?? 'all') === 'all' || ($filterSessionStatus ?? '') === '' || $stateKey === $filterSessionStatus);
+                                $isVisible = ($matchesEvent && $matchesStatus);
                             @endphp
-                            <tr class="hover:bg-[#FAF6EE]/60">
+                            <tr data-occupancy-row
+                                data-occupancy-event="{{ $schedule->event_id }}"
+                                data-occupancy-status="{{ $stateKey }}"
+                                class="hover:bg-[#FAF6EE]/60 {{ !$isVisible ? 'hidden' : '' }}">
                                 <td class="py-3 px-4 font-medium text-[#2A211A]">{{ $schedule->event->title ?? '-' }}</td>
                                 <td class="py-3 px-4 tabular-nums">{{ $schedule->tour_date->format('Y-m-d') }}</td>
                                 <td class="py-3 px-4 tabular-nums">{{ $schedule->session_code }} ({{ $schedule->formattedTimeRange() }})</td>
@@ -110,10 +182,75 @@
                                 </td>
                             </tr>
                         @endforeach
+                        <tr id="occupancy-empty-row" class="hidden">
+                            <td colspan="8" class="py-8 text-center text-xs text-[#6E635A]">
+                                Tidak ada sesi jadwal yang sesuai dengan filter Event Tour / Status Sesi yang dipilih.
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
         </div>
+
+        <script>
+            document.addEventListener('DOMContentLoaded', function () {
+                const eventSelect = document.getElementById('occupancy_event_filter');
+                const statusSelect = document.getElementById('occupancy_status_filter');
+                const resetBtn = document.getElementById('occupancy-reset-all-btn');
+                const rows = document.querySelectorAll('[data-occupancy-row]');
+                const emptyRow = document.getElementById('occupancy-empty-row');
+                const countBadge = document.getElementById('occupancy-count-badge');
+
+                function applyOccupancyFilter() {
+                    const selectedEvent = eventSelect ? eventSelect.value : 'all';
+                    const selectedStatus = statusSelect ? statusSelect.value : 'all';
+                    let visibleCount = 0;
+
+                    rows.forEach(function (row) {
+                        const rowEvent = row.getAttribute('data-occupancy-event');
+                        const rowStatus = row.getAttribute('data-occupancy-status');
+                        const matchEvent = (selectedEvent === 'all' || selectedEvent === '' || rowEvent === selectedEvent);
+                        const matchStatus = (selectedStatus === 'all' || selectedStatus === '' || rowStatus === selectedStatus);
+
+                        if (matchEvent && matchStatus) {
+                            row.classList.remove('hidden');
+                            visibleCount++;
+                        } else {
+                            row.classList.add('hidden');
+                        }
+                    });
+
+                    if (emptyRow) {
+                        emptyRow.classList.toggle('hidden', visibleCount > 0);
+                    }
+
+                    if (countBadge) {
+                        countBadge.textContent = 'Menampilkan ' + visibleCount + ' dari ' + rows.length + ' sesi jadwal';
+                    }
+                }
+
+                if (eventSelect) {
+                    eventSelect.addEventListener('change', applyOccupancyFilter);
+                }
+
+                if (statusSelect) {
+                    statusSelect.addEventListener('change', applyOccupancyFilter);
+                }
+
+                if (resetBtn) {
+                    resetBtn.addEventListener('click', function () {
+                        if (eventSelect) eventSelect.value = 'all';
+                        if (statusSelect) statusSelect.value = 'all';
+                        applyOccupancyFilter();
+                        if (window.history && window.history.replaceState) {
+                            window.history.replaceState({}, document.title, window.location.pathname);
+                        }
+                    });
+                }
+
+                applyOccupancyFilter();
+            });
+        </script>
 
         <!-- Bottom Split: Notifications (FR-16) & Audit Logs (NFR Audit) -->
         <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
