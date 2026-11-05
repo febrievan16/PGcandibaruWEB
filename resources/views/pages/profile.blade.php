@@ -4,12 +4,18 @@
 
 @section('content')
     <!-- Editorial Header & Sub-Navigation Menu inside /profil -->
-    <section class="border-b border-[#E3D9C9] pt-12 pb-6 lg:pt-16 lg:pb-8">
-        <div class="max-w-[1200px] mx-auto px-4 sm:px-6 space-y-8">
+    <section class="relative overflow-hidden border-b border-[#E3D9C9] pt-12 pb-6 lg:pt-16 lg:pb-8">
+        <div aria-hidden="true"
+             data-parallax-speed="-0.14"
+             class="heritage-watermark absolute top-4 right-6 text-[72px] sm:text-[132px]">
+            SEJARAH {{ $profile?->established_year ?? 1911 }}
+        </div>
+
+        <div class="relative z-10 max-w-[1200px] mx-auto px-4 sm:px-6 space-y-8">
             <div class="flex flex-col lg:flex-row lg:items-end justify-between gap-6">
-                <div class="max-w-[68ch] space-y-4">
+                <div data-reveal="left" class="max-w-[68ch] space-y-4">
                     <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold">
-                        Modul M1 &bull; Profil, Sejarah & Publikasi Heritage (Sejak {{ $profile?->established_year ?? 1911 }})
+                        Modul M1 &bull; Profil, Sejarah & Publikasi Heritage (Sejak <span data-count-up="{{ $profile?->established_year ?? 1911 }}" data-count-from="1880" class="tabular-nums">{{ $profile?->established_year ?? 1911 }}</span>)
                     </span>
                     <h1 class="font-serif text-4xl sm:text-5xl font-bold text-[#2A211A]">
                         {{ $profile?->company_name ?? 'PT Pabrik Gula Candi Baru' }}
@@ -21,7 +27,7 @@
 
                 @auth
                     @if(auth()->user()->isAdmin())
-                        <div class="border border-[#6B3F1E] bg-[#F3EAD8] p-4 space-y-2 shrink-0">
+                        <div data-reveal="right" class="heritage-card-interactive border border-[#6B3F1E] bg-[#F3EAD8] p-4 space-y-2 shrink-0">
                             <span class="text-[11px] uppercase tracking-wider font-bold text-[#6B3F1E] block">
                                 Mode Administrator Aktif
                             </span>
@@ -39,7 +45,7 @@
             </div>
 
             <!-- In-Page Editorial Sub-Menu for /profil -->
-            <nav aria-label="Sub-menu Halaman Profil" class="border-t border-[#E3D9C9] pt-4 flex flex-wrap items-center justify-between gap-4 text-sm">
+            <nav data-reveal="up" data-reveal-delay="120" aria-label="Sub-menu Halaman Profil" class="border-t border-[#E3D9C9] pt-4 flex flex-wrap items-center justify-between gap-4 text-sm">
                 <div class="flex flex-wrap items-center gap-6">
                     <a href="#sejarah-visi-misi" class="font-semibold text-[#6B3F1E] hover:underline underline-offset-4">
                         1. Sejarah & Visi-Misi
@@ -62,24 +68,24 @@
     </section>
 
     <!-- 1. Sejarah & Visi Misi (Editorial Typography without Card Wrappers per DESIGN.md §8) -->
-    <section id="sejarah-visi-misi" class="border-b border-[#E3D9C9] py-12 lg:py-16">
+    <section id="sejarah-visi-misi" class="relative overflow-hidden border-b border-[#E3D9C9] py-12 lg:py-16">
         <div class="max-w-[1200px] mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-10">
-            <div class="lg:col-span-7 space-y-5">
+            <div data-reveal="left" class="lg:col-span-7 space-y-5">
                 <h2 class="font-serif text-2xl sm:text-3xl font-semibold text-[#6B3F1E]">
                     Sejarah Pendirian & Perjalanan Industri
                 </h2>
-                <div class="space-y-4 text-base text-[#2A211A] leading-relaxed max-w-[68ch]">
+                <div data-reveal-stagger="100" class="space-y-4 text-base text-[#2A211A] leading-relaxed max-w-[68ch]">
                     @if($profile?->history)
                         @foreach(explode("\n\n", $profile->history) as $paragraph)
-                            <p>{{ $paragraph }}</p>
+                            <p data-reveal="up">{{ $paragraph }}</p>
                         @endforeach
                     @else
-                        <p>PT Pabrik Gula Candi Baru berdiri sejak tahun 1911 di Kabupaten Sidoarjo, Jawa Timur.</p>
+                        <p data-reveal="up">PT Pabrik Gula Candi Baru berdiri sejak tahun 1911 di Kabupaten Sidoarjo, Jawa Timur.</p>
                     @endif
                 </div>
             </div>
 
-            <div class="lg:col-span-5 lg:border-l lg:border-[#E3D9C9] lg:pl-10 space-y-8">
+            <div data-reveal="right" data-reveal-delay="140" class="lg:col-span-5 lg:border-l lg:border-[#E3D9C9] lg:pl-10 space-y-8">
                 <div class="pb-8 border-b border-[#E3D9C9]">
                     <h2 class="font-serif text-2xl font-semibold text-[#6B3F1E] mb-3">Visi</h2>
                     <p class="font-serif text-lg text-[#2A211A] leading-relaxed">
@@ -89,9 +95,9 @@
 
                 <div>
                     <h2 class="font-serif text-2xl font-semibold text-[#6B3F1E] mb-4">Misi</h2>
-                    <ul class="space-y-4">
+                    <ul data-reveal-stagger="90" class="space-y-4">
                         @foreach($profile?->mission ?? [] as $idx => $item)
-                            <li class="flex items-start gap-3 pb-3 border-b border-[#E3D9C9] last:border-b-0">
+                            <li data-reveal="up" class="flex items-start gap-3 pb-3 border-b border-[#E3D9C9] last:border-b-0">
                                 <span class="font-serif text-sm font-bold text-[#A67C52] tabular-nums">0{{ $idx + 1 }}</span>
                                 <span class="text-sm text-[#2A211A] leading-relaxed">{{ $item }}</span>
                             </li>
@@ -103,9 +109,15 @@
     </section>
 
     <!-- 2. Artikel & Publikasi Sejarah Pabrik -->
-    <section id="artikel-heritage" class="border-b border-[#E3D9C9] py-12 lg:py-16">
-        <div class="max-w-[1200px] mx-auto px-4 sm:px-6 space-y-8">
-            <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#E3D9C9] pb-5">
+    <section id="artikel-heritage" class="relative overflow-hidden border-b border-[#E3D9C9] py-12 lg:py-16">
+        <div aria-hidden="true"
+             data-parallax-speed="0.11"
+             class="heritage-watermark absolute top-8 right-6 text-[68px] sm:text-[118px]">
+            LITERASI ARSIP
+        </div>
+
+        <div class="relative z-10 max-w-[1200px] mx-auto px-4 sm:px-6 space-y-8">
+            <div data-reveal="up" class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#E3D9C9] pb-5">
                 <div>
                     <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold">Publikasi & Edukasi Heritage</span>
                     <h2 class="font-serif text-3xl font-semibold text-[#2A211A] mt-1">Artikel & Catatan Sejarah PG Candi Baru</h2>
@@ -128,25 +140,25 @@
             </div>
 
             @if($articles->isEmpty())
-                <div class="border border-[#E3D9C9] bg-[#FFFFFF] p-10 text-center space-y-3">
+                <div data-reveal="scale" class="border border-[#E3D9C9] bg-[#FFFFFF] p-10 text-center space-y-3">
                     <h3 class="font-serif text-xl text-[#2A211A]">Belum Ada Artikel yang Dipublikasikan</h3>
                     <p class="text-sm text-[#6E635A]">Artikel sejarah dan edukasi pabrik gula akan tampil di bagian ini.</p>
                 </div>
             @else
-                <div class="divide-y divide-[#E3D9C9] border-t border-b border-[#E3D9C9]">
+                <div data-reveal-stagger="120" class="divide-y divide-[#E3D9C9] border-t border-b border-[#E3D9C9]">
                     @foreach($articles as $article)
-                        <article class="py-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+                        <article data-reveal="up" class="py-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                             <!-- Left 4/12: Cover Image or Heritage Archival Plate -->
                             <div class="lg:col-span-4">
-                                <a href="{{ route('articles.show', $article->slug) }}" class="block border border-[#E3D9C9] bg-[#FFFFFF] p-2 hover:border-[#6B3F1E] transition-colors">
+                                <a href="{{ route('articles.show', $article->slug) }}" data-tilt-card class="group heritage-card-interactive block border border-[#E3D9C9] bg-[#FFFFFF] p-2 hover:border-[#6B3F1E] transition-colors">
                                     <div class="aspect-[16/10] bg-[#F3EAD8] border border-[#E3D9C9] overflow-hidden flex items-center justify-center">
                                         @if($article->cover_image)
                                             <img src="{{ $article->cover_image }}"
                                                  alt="{{ $article->title }}"
                                                  loading="lazy"
-                                                 class="w-full h-full object-cover">
+                                                 class="heritage-img-zoom w-full h-full object-cover">
                                         @else
-                                            <svg class="w-full h-full" viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="{{ $article->title }}">
+                                            <svg class="heritage-img-zoom w-full h-full" viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="{{ $article->title }}">
                                                 <rect width="480" height="300" fill="#F3EAD8"/>
                                                 <rect x="18" y="18" width="444" height="264" fill="none" stroke="#A67C52" stroke-width="1.5"/>
                                                 <line x1="40" y1="75" x2="440" y2="75" stroke="#E3D9C9" stroke-width="1"/>
@@ -209,9 +221,15 @@
     </section>
 
     <!-- 3. Archival Gallery with Lazy Loading & Heritage Placeholder Edge Case (FEATURES.md §2) -->
-    <section id="galeri-arsip" class="border-b border-[#E3D9C9] py-12 lg:py-16">
-        <div class="max-w-[1200px] mx-auto px-4 sm:px-6 space-y-8">
-            <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#E3D9C9] pb-5">
+    <section id="galeri-arsip" class="relative overflow-hidden border-b border-[#E3D9C9] py-12 lg:py-16">
+        <div aria-hidden="true"
+             data-parallax-speed="-0.12"
+             class="heritage-watermark absolute bottom-6 left-4 text-[64px] sm:text-[116px]">
+            DOKUMENTASI PABRIK
+        </div>
+
+        <div class="relative z-10 max-w-[1200px] mx-auto px-4 sm:px-6 space-y-8">
+            <div data-reveal="up" class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#E3D9C9] pb-5">
                 <div>
                     <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold">Dokumentasi Visual</span>
                     <h2 class="font-serif text-3xl font-semibold text-[#2A211A] mt-1">Galeri Arsip & Stasiun Pabrik</h2>
@@ -221,7 +239,7 @@
 
             @if($galleryItems->isEmpty())
                 <!-- Edge Case from FEATURES.md §2: Heritage Placeholder when gallery is empty -->
-                <div class="border border-[#E3D9C9] bg-[#F3EAD8] p-10 text-center space-y-3">
+                <div data-reveal="scale" class="border border-[#E3D9C9] bg-[#F3EAD8] p-10 text-center space-y-3">
                     <span class="text-xs uppercase tracking-[0.08em] text-[#6B3F1E] font-semibold block">Arsip Dokumentasi Heritage</span>
                     <h3 class="font-serif text-2xl text-[#2A211A]">Koleksi Foto Arsip Sedang Dalam Kurasi</h3>
                     <p class="text-sm text-[#6E635A] max-w-[54ch] mx-auto">
@@ -229,7 +247,7 @@
                     </p>
                 </div>
             @else
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                <div data-reveal-stagger="115" class="grid grid-cols-1 md:grid-cols-2 gap-8">
                     @foreach($galleryItems as $item)
                         @php
                             $slides = $item->gallerySlides();
@@ -237,19 +255,22 @@
                         <figure tabindex="0"
                                 role="button"
                                 aria-label="Buka pop-up koleksi foto {{ $item->title }} ({{ count($slides) }} foto)"
+                                data-reveal="up"
+                                data-tilt-card
+                                data-tilt-max="2.2"
                                 data-gallery-trigger
                                 data-gallery-title="{{ $item->title }}"
                                 data-gallery-category="{{ $item->category }}"
                                 data-gallery-year="{{ $item->year_label ?? 'Arsip PG Candi Baru' }}"
                                 data-gallery-caption="{{ $item->caption }}"
                                 data-gallery-slides='@json($slides)'
-                                class="group border border-[#E3D9C9] bg-[#FFFFFF] p-4 flex flex-col justify-between cursor-pointer hover:border-[#6B3F1E] transition-colors">
+                                class="group heritage-card-interactive border border-[#E3D9C9] bg-[#FFFFFF] p-4 flex flex-col justify-between cursor-pointer hover:border-[#6B3F1E] transition-colors">
                             <div>
                                 <div class="aspect-[16/9] bg-[#F3EAD8] border border-[#E3D9C9] overflow-hidden relative flex items-center justify-center">
                                     <img src="{{ $slides[0]['url'] }}"
                                          alt="{{ $item->title }}"
                                          loading="lazy"
-                                         class="w-full h-full object-cover">
+                                         class="heritage-img-zoom w-full h-full object-cover">
 
                                     <!-- Multi-Photo Count Indicator Badge -->
                                     <div class="absolute bottom-3 right-3 bg-[#2A211A]/90 text-[#FAF6EE] px-3 py-1 text-xs font-semibold tracking-wider flex items-center gap-1.5 border border-[#C8A24A]">
@@ -489,29 +510,35 @@
     @endpush
 
     <!-- 4. Contact & Location Details (FR-01) -->
-    <section id="kontak-lokasi" class="py-12 lg:py-16">
-        <div class="max-w-[1200px] mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-            <div class="lg:col-span-6 space-y-4">
+    <section id="kontak-lokasi" class="relative overflow-hidden py-12 lg:py-16">
+        <div aria-hidden="true"
+             data-parallax-speed="0.10"
+             class="heritage-watermark absolute top-8 right-6 text-[64px] sm:text-[118px]">
+            SIDOARJO 61271
+        </div>
+
+        <div class="relative z-10 max-w-[1200px] mx-auto px-4 sm:px-6 grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+            <div data-reveal="left" class="lg:col-span-6 space-y-4">
                 <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold">Informasi Kunjungan</span>
                 <h2 class="font-serif text-3xl font-semibold text-[#2A211A]">Kontak & Lokasi Pabrik</h2>
-                <dl class="divide-y divide-[#E3D9C9] border-t border-b border-[#E3D9C9] text-sm">
-                    <div class="py-3.5 grid grid-cols-3 gap-4">
+                <dl data-reveal-stagger="80" class="divide-y divide-[#E3D9C9] border-t border-b border-[#E3D9C9] text-sm">
+                    <div data-reveal="up" class="py-3.5 grid grid-cols-3 gap-4">
                         <dt class="text-[#6E635A] font-medium">Alamat Lengkap</dt>
                         <dd class="col-span-2 text-[#2A211A]">{{ $profile?->address }}</dd>
                     </div>
-                    <div class="py-3.5 grid grid-cols-3 gap-4">
+                    <div data-reveal="up" class="py-3.5 grid grid-cols-3 gap-4">
                         <dt class="text-[#6E635A] font-medium">Telepon Resmi</dt>
                         <dd class="col-span-2 text-[#2A211A] tabular-nums">{{ $profile?->phone }}</dd>
                     </div>
-                    <div class="py-3.5 grid grid-cols-3 gap-4">
+                    <div data-reveal="up" class="py-3.5 grid grid-cols-3 gap-4">
                         <dt class="text-[#6E635A] font-medium">Layanan WhatsApp</dt>
                         <dd class="col-span-2 text-[#2A211A] tabular-nums">+{{ $profile?->whatsapp }}</dd>
                     </div>
-                    <div class="py-3.5 grid grid-cols-3 gap-4">
+                    <div data-reveal="up" class="py-3.5 grid grid-cols-3 gap-4">
                         <dt class="text-[#6E635A] font-medium">Surel Resmi</dt>
                         <dd class="col-span-2 text-[#2A211A]">{{ $profile?->email }}</dd>
                     </div>
-                    <div class="py-3.5 grid grid-cols-3 gap-4">
+                    <div data-reveal="up" class="py-3.5 grid grid-cols-3 gap-4">
                         <dt class="text-[#6E635A] font-medium">Jam Operasional</dt>
                         <dd class="col-span-2 text-[#2A211A]">{{ $profile?->operating_hours }}</dd>
                     </div>
@@ -523,8 +550,8 @@
                 </div>
             </div>
 
-            <div class="lg:col-span-6">
-                <div class="border border-[#E3D9C9] bg-[#FFFFFF] p-4 space-y-3">
+            <div data-reveal="right" data-reveal-delay="140" class="lg:col-span-6">
+                <div data-tilt-card class="heritage-card-interactive border border-[#E3D9C9] bg-[#FFFFFF] p-4 space-y-3">
                     <div class="aspect-[16/10] bg-[#F3EAD8] border border-[#E3D9C9] flex flex-col items-center justify-center p-6 text-center">
                         <span class="text-xs uppercase tracking-[0.08em] text-[#6B3F1E] font-semibold">Titik Kumpul Kunjungan</span>
                         <h3 class="font-serif text-2xl font-bold text-[#2A211A] mt-2">Gerbang Utama PT Pabrik Gula Candi Baru</h3>

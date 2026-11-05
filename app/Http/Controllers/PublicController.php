@@ -46,9 +46,18 @@ class PublicController extends Controller
             ->latest('id')
             ->get();
 
+        $articles = Article::query()
+            ->select(self::ARTICLE_LIST_COLUMNS)
+            ->where('is_published', true)
+            ->latest('published_at')
+            ->latest('id')
+            ->limit(6)
+            ->get();
+
         return view('pages.home', [
             'profile' => $profile,
             'events' => $events,
+            'articles' => $articles,
         ]);
     }
 

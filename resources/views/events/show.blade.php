@@ -4,20 +4,26 @@
 
 @section('content')
     <!-- Event Header & Uniform Pricing Table (DEC-001) -->
-    <section class="border-b border-[#E3D9C9] py-10 lg:py-14">
-        <div class="max-w-[1200px] mx-auto px-4 sm:px-6">
-            <div class="mb-4">
+    <section class="relative overflow-hidden border-b border-[#E3D9C9] py-10 lg:py-14">
+        <div aria-hidden="true"
+             data-parallax-speed="-0.14"
+             class="heritage-watermark absolute top-4 right-6 text-[68px] sm:text-[124px]">
+            JADWAL &amp; KUOTA
+        </div>
+
+        <div class="relative z-10 max-w-[1200px] mx-auto px-4 sm:px-6">
+            <div data-reveal="down" class="mb-4">
                 <a href="{{ route('events.index') }}" class="link-heritage-tertiary text-xs uppercase tracking-wider">
                     &larr; Kembali ke Katalog Event
                 </a>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-                <div class="lg:col-span-7 space-y-4">
+                <div data-reveal="left" class="lg:col-span-7 space-y-4">
                     <div class="flex flex-wrap items-center gap-3 text-xs">
                         <span class="uppercase tracking-[0.08em] font-semibold text-[#4A6B3A]">Event Aktif</span>
                         <span class="text-[#E3D9C9]">|</span>
-                        <span class="tabular-nums text-[#6E635A]">Durasi Kunjungan: {{ $event->duration_minutes }} Menit</span>
+                        <span class="tabular-nums text-[#6E635A]">Durasi Kunjungan: <strong data-count-up="{{ $event->duration_minutes }}">{{ $event->duration_minutes }}</strong> Menit</span>
                         <span class="text-[#E3D9C9]">|</span>
                         <span class="text-[#6E635A]">{{ $event->meeting_point }}</span>
                     </div>
@@ -33,9 +39,9 @@
                     @if(!empty($event->highlights))
                         <div class="pt-2">
                             <h2 class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold mb-2.5">Rangkaian Kegiatan Kunjungan:</h2>
-                            <ul class="space-y-1.5 text-sm text-[#2A211A]">
+                            <ul data-reveal-stagger="80" class="space-y-1.5 text-sm text-[#2A211A]">
                                 @foreach($event->highlights as $highlight)
-                                    <li class="flex items-start gap-2.5">
+                                    <li data-reveal="up" class="flex items-start gap-2.5">
                                         <span class="text-[#6B3F1E] font-bold">&bull;</span>
                                         <span>{{ $highlight }}</span>
                                     </li>
@@ -46,8 +52,8 @@
                 </div>
 
                 <!-- Single-Row Uniform Pricing Table per DESIGN.md §6 & DEC-001 -->
-                <div class="lg:col-span-5">
-                    <div class="border border-[#E3D9C9] bg-[#FFFFFF] p-6 space-y-4">
+                <div data-reveal="right" data-reveal-delay="140" class="lg:col-span-5">
+                    <div data-tilt-card class="heritage-card-interactive border border-[#E3D9C9] bg-[#FFFFFF] p-6 space-y-4">
                         <div class="flex items-center justify-between border-b border-[#E3D9C9] pb-3">
                             <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold">Tabel Harga Resmi (DEC-001)</span>
                             <span class="text-xs text-[#6E635A]">Mata Uang: IDR</span>
@@ -102,7 +108,7 @@
             @endif
 
             <!-- Wizard Progress Indicator -->
-            <div class="grid grid-cols-1 sm:grid-cols-2 border border-[#E3D9C9] bg-[#FFFFFF]">
+            <div data-reveal="up" class="grid grid-cols-1 sm:grid-cols-2 border border-[#E3D9C9] bg-[#FFFFFF]">
                 <div class="p-4 border-b sm:border-b-0 sm:border-r border-[#E3D9C9] flex items-center gap-3 bg-[#F3EAD8]/60">
                     <span class="w-8 h-8 flex items-center justify-center font-serif font-bold text-sm bg-[#6B3F1E] text-[#FAF6EE] rounded-[2px]">1</span>
                     <div>
@@ -121,7 +127,7 @@
 
             <!-- STEP 1: Timeline Sesi per Tanggal (DESIGN.md §6 & DEC-003) -->
             <div id="wizard-step-1" class="space-y-6">
-                <div class="flex flex-wrap items-center justify-between gap-4 border-b border-[#E3D9C9] pb-4">
+                <div data-reveal="up" class="flex flex-wrap items-center justify-between gap-4 border-b border-[#E3D9C9] pb-4">
                     <div>
                         <h2 class="font-serif text-2xl font-semibold text-[#2A211A]">
                             Langkah 1: Pilih Tanggal & Sesi Tour
@@ -144,18 +150,18 @@
                 </div>
 
                 @if($schedulesByDate->isEmpty())
-                    <div class="border border-[#E3D9C9] bg-[#FFFFFF] p-8 text-center">
+                    <div data-reveal="scale" class="border border-[#E3D9C9] bg-[#FFFFFF] p-8 text-center">
                         <p class="text-sm text-[#6E635A]">Belum ada sesi jadwal yang dibuka untuk event ini.</p>
                     </div>
                 @else
                     <!-- Vertical Session Timeline -->
-                    <div class="relative pl-6 sm:pl-8 border-l-2 border-[#E3D9C9] space-y-8">
+                    <div data-reveal-stagger="115" class="relative pl-6 sm:pl-8 border-l-2 border-[#E3D9C9] space-y-8">
                         @foreach($schedulesByDate as $dateString => $dateSchedules)
                             @php
                                 $firstSchedule = $dateSchedules->first();
                                 $isDatePast = $firstSchedule->isPast();
                             @endphp
-                            <div class="relative">
+                            <div data-reveal="up" class="relative">
                                 <!-- Timeline Node Dot -->
                                 <span class="absolute -left-[31px] sm:-left-[39px] top-1.5 w-3.5 h-3.5 rounded-full border-2 border-[#6B3F1E] {{ $isDatePast ? 'bg-[#E3D9C9]' : 'bg-[#C8A24A]' }}"></span>
 
@@ -176,7 +182,8 @@
                                             $remaining = $schedule->remainingQuota();
                                         @endphp
                                         <div data-schedule-card="{{ $schedule->id }}"
-                                             class="border p-4 transition-colors {{ $isSelected ? 'session-card-selected' : 'border-[#E3D9C9] bg-[#FFFFFF]' }} {{ !$isAvailable ? 'opacity-55 bg-[#FAF6EE]' : '' }}">
+                                             @if($isAvailable) data-tilt-card data-tilt-max="1.8" @endif
+                                             class="{{ $isAvailable ? 'heritage-card-interactive' : '' }} border p-4 transition-colors {{ $isSelected ? 'session-card-selected' : 'border-[#E3D9C9] bg-[#FFFFFF]' }} {{ !$isAvailable ? 'opacity-55 bg-[#FAF6EE]' : '' }}">
                                             <div class="flex items-start justify-between gap-4">
                                                 <div>
                                                     <span class="text-xs uppercase tracking-[0.06em] font-semibold text-[#6B3F1E] block">
@@ -226,9 +233,9 @@
             </div>
 
             <!-- STEP 2: Form Data Diri & Jumlah Tiket (Strictly NOT rendered before Step 1 is valid per DEC-003) -->
-            <div id="wizard-step-2" class="pt-6 border-t-2 border-[#E3D9C9]">
+            <div id="wizard-step-2" data-reveal="up" class="pt-6 border-t-2 border-[#E3D9C9]">
                 @if(!$selectedSchedule)
-                    <div class="border border-[#E3D9C9] bg-[#FFFFFF] p-8 text-center space-y-2">
+                    <div class="heritage-card-interactive border border-[#E3D9C9] bg-[#FFFFFF] p-8 text-center space-y-2">
                         <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold block">
                             Langkah 2 Terkunci (Aturan DEC-003)
                         </span>
@@ -242,7 +249,7 @@
                 @else
                     <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
                         <!-- Buyer Details Form -->
-                        <div class="lg:col-span-7 space-y-6">
+                        <div data-reveal="left" class="lg:col-span-7 space-y-6">
                             <div>
                                 <span class="text-xs uppercase tracking-[0.08em] text-[#4A6B3A] font-semibold">
                                     Langkah 2 Aktif &bull; Jadwal Terpilih
@@ -347,8 +354,8 @@
                         </div>
 
                         <!-- Order Summary Box (Allowed Card Container per DESIGN.md §8) -->
-                        <div class="lg:col-span-5">
-                            <div class="border border-[#E3D9C9] bg-[#FFFFFF] p-6 space-y-4">
+                        <div data-reveal="right" data-reveal-delay="120" class="lg:col-span-5">
+                            <div data-tilt-card class="heritage-card-interactive border border-[#E3D9C9] bg-[#FFFFFF] p-6 space-y-4">
                                 <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold block">
                                     Ringkasan Jadwal & Biaya
                                 </span>
@@ -432,6 +439,9 @@
                         }
                         if (summaryTotal) {
                             summaryTotal.textContent = formatIdr(total);
+                            summaryTotal.classList.remove('price-pulse-active');
+                            void summaryTotal.offsetWidth;
+                            summaryTotal.classList.add('price-pulse-active');
                         }
                         if (mobileTotal) {
                             mobileTotal.textContent = formatIdr(total);

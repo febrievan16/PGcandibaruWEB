@@ -419,6 +419,16 @@ class GulaTourTest extends TestCase
             ->assertSee('LAPORAN BULANAN TRANSAKSI, REKAPITULASI PEMESAN & POPULARITAS EVENT', false)
             ->assertSee('I. Ringkasan Eksekutif (Executive Summary)')
             ->assertSee('Pratinjau Dokumen Cetak');
+
+        // Verify parallax, scroll-reveal, and interactive jumbotron motion hooks on public pages
+        $this->get('/')
+            ->assertStatus(200)
+            ->assertSee('id="heritage-scroll-progress"', false)
+            ->assertSee('data-parallax-scene', false)
+            ->assertSee('data-parallax-speed', false)
+            ->assertSee('data-reveal="left"', false)
+            ->assertSee('data-tilt-card', false)
+            ->assertSee('id="heritage-jumbotron-viewport"', false);
     }
 }
 

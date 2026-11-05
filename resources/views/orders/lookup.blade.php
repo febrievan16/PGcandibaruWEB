@@ -3,9 +3,15 @@
 @section('title', 'Cek Status Pesanan & Unduh E-Ticket — GulaTour')
 
 @section('content')
-    <section class="py-14">
-        <div class="max-w-[640px] mx-auto px-4 sm:px-6 space-y-6">
-            <div class="space-y-2 border-b border-[#E3D9C9] pb-5">
+    <section class="relative overflow-hidden py-14">
+        <div aria-hidden="true"
+             data-parallax-speed="-0.12"
+             class="heritage-watermark absolute top-6 right-6 text-[68px] sm:text-[124px]">
+            E-TICKET QR
+        </div>
+
+        <div class="relative z-10 max-w-[640px] mx-auto px-4 sm:px-6 space-y-6">
+            <div data-reveal="up" class="space-y-2 border-b border-[#E3D9C9] pb-5">
                 <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold">Layanan Pengunjung Tamu & Akun</span>
                 <h1 class="font-serif text-3xl font-bold text-[#2A211A]">Cek Status Pesanan & E-Ticket</h1>
                 <p class="text-sm text-[#6E635A]">
@@ -14,13 +20,13 @@
             </div>
 
             @if($errors->any())
-                <div role="alert" class="border border-[#8B2E1F] bg-[#8B2E1F]/10 p-4 text-sm text-[#2A211A]">
+                <div role="alert" data-reveal="scale" class="border border-[#8B2E1F] bg-[#8B2E1F]/10 p-4 text-sm text-[#2A211A]">
                     <strong class="text-xs uppercase tracking-wider text-[#8B2E1F] block mb-1">Pencarian Gagal</strong>
                     {{ $errors->first() }}
                 </div>
             @endif
 
-            <form action="{{ route('orders.lookup.submit') }}" method="POST" class="border border-[#E3D9C9] bg-[#FFFFFF] p-6 space-y-5">
+            <form data-reveal="up" data-reveal-delay="120" data-tilt-card data-tilt-max="1.8" action="{{ route('orders.lookup.submit') }}" method="POST" class="heritage-card-interactive border border-[#E3D9C9] bg-[#FFFFFF] p-6 space-y-5">
                 @csrf
                 <div>
                     <label for="order_code" class="block text-sm font-semibold text-[#2A211A] mb-1.5">
