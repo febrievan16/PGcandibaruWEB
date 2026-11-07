@@ -25,7 +25,9 @@ class EventBookingController extends Controller
         $events = Event::with('schedules')
             ->where('status', 'active')
             ->orderBy('id')
-            ->get();
+            ->get()
+            ->filter(fn (Event $event): bool => $event->hasAvailableSchedules())
+            ->values();
 
         return view('events.index', [
             'events' => $events,

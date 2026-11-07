@@ -44,7 +44,9 @@ class PublicController extends Controller
         }])
             ->where('status', 'active')
             ->latest('id')
-            ->get();
+            ->get()
+            ->filter(fn (Event $event): bool => $event->hasAvailableSchedules())
+            ->values();
 
         $articles = Article::query()
             ->select(self::ARTICLE_LIST_COLUMNS)

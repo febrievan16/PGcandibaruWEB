@@ -13,6 +13,12 @@
       "skillPath": ".claude/skills/deploying-to-cloud/SKILL.md",
       "computedHash": "4d27acdc1e7f50aeec65864c5effec8d1720c02eb34b069c7d51254899a61c83"
     },
+    "find-skills": {
+      "source": "vercel-labs/skills",
+      "sourceType": "github",
+      "skillPath": "skills/find-skills/SKILL.md",
+      "computedHash": "913b9d37d0d54047dd65222bb8c67b2bf04e3cb87dcad1729068d7a8b2c8c396"
+    },
     "frontend-design": {
       "source": "anthropics/skills",
       "sourceType": "github",
@@ -30,6 +36,12 @@
       "sourceType": "github",
       "skillPath": ".claude/skills/infer-conventions/SKILL.md",
       "computedHash": "61f49d8847b99b77e6a93888fdef5de2bcabdf8feded69fd110868d0faf2df76"
+    },
+    "web3d-integration-patterns": {
+      "source": "freshtechbro/claudedesignskills",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/web3d-integration-patterns/SKILL.md",
+      "computedHash": "031b411386de803fb3612bbcec35077ea6bfa414765c950c834ae226ad71acf8"
     }
   }
 }
