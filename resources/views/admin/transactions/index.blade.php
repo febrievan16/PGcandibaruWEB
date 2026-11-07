@@ -11,7 +11,7 @@
         Pratinjau Dokumen Cetak
     </button>
     <button type="button"
-            onclick="window.print()"
+            id="open-print-dialog-btn"
             class="btn-heritage-primary text-xs py-2 px-4 cursor-pointer">
         Cetak Laporan Bulanan (PDF)
     </button>
@@ -403,10 +403,10 @@
                         Profil & Rekapitulasi Pemesan
                     </span>
                     <h2 class="font-serif text-2xl font-bold text-[#2A211A] mt-0.5">
-                        Ringkasan Akumulasi Transaksi dari Tiap Pemesan ({{ $buyerSummaries->count() }} Pemesan)
+                        Ringkasan Akumulasi Transaksi dari Tiap Pemesan (10 Pemesan Tertinggi dari {{ $buyerSummaries->count() }})
                     </h2>
                 </div>
-                <span class="text-xs text-[#6E635A]">Menampilkan akumulasi pemesanan, event yang diikuti, dan deskripsi aktivitas tiap pemesan</span>
+                <span class="text-xs text-[#6E635A]">Menampilkan 10 pemesan volume transaksi tertinggi, akumulasi pesanan, dan deskripsi aktivitas</span>
             </div>
 
             <div class="overflow-x-auto border border-[#E3D9C9]">
@@ -422,7 +422,7 @@
                         </tr>
                     </thead>
                     <tbody class="divide-y divide-[#E3D9C9]">
-                        @foreach($buyerSummaries as $buyer)
+                        @foreach($buyerSummaries->take(10) as $buyer)
                             <tr class="hover:bg-[#FAF6EE]/60">
                                 <td class="py-3.5 px-4">
                                     <strong class="text-[#2A211A] block">{{ $buyer['buyer_name'] }}</strong>
@@ -823,7 +823,7 @@
         <!-- BAGIAN IV: REKAPITULASI AKUMULASI TRANSAKSI TIAP PEMESAN -->
         <section class="report-doc-section space-y-2">
             <h3 class="font-serif text-sm font-bold uppercase tracking-wider text-[#1A1410]">
-                IV. Rekapitulasi & Deskripsi Akumulasi Transaksi per Pemesan ({{ $buyerSummaries->count() }} Pemesan)
+                IV. Rekapitulasi & Deskripsi Akumulasi Transaksi per Pemesan (10 Pemesan Tertinggi dari {{ $buyerSummaries->count() }})
             </h3>
             <table class="report-doc-table tabular-nums">
                 <thead>
@@ -839,7 +839,7 @@
                     </tr>
                 </thead>
                 <tbody>
-                    @foreach($buyerSummaries as $idx => $buyer)
+                    @foreach($buyerSummaries->take(10) as $idx => $buyer)
                         <tr>
                             <td class="text-center">{{ $idx + 1 }}</td>
                             <td class="font-semibold">{{ $buyer['buyer_name'] }}</td>
@@ -929,12 +929,219 @@
 
     </div>
 
+    <!-- ===================================================================== -->
+    <!-- C. MODAL POP-UP PEMILIHAN PERIODE CETAK LAPORAN                       -->
+    <!-- ===================================================================== -->
+    <div id="print-selection-modal"
+         role="dialog"
+         aria-modal="true"
+         aria-labelledby="print-modal-title"
+         class="hidden fixed inset-0 z-50 bg-[#2A211A]/80 backdrop-blur-sm flex items-center justify-center p-4 no-print">
+        <div class="bg-[#FAF6EE] border-2 border-[#6B3F1E] shadow-2xl max-w-md w-full overflow-hidden transition-all transform animate-in fade-in zoom-in-95 duration-150">
+            <!-- Modal Header -->
+            <div class="bg-[#6B3F1E] text-[#FAF6EE] px-5 py-3.5 flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                    <span class="text-base font-serif font-bold text-[#C8A24A]">✦</span>
+                    <h3 id="print-modal-title" class="font-serif text-base font-bold tracking-wide">
+                        Pilih Periode Cetak Laporan
+                    </h3>
+                </div>
+                <button type="button"
+                        id="close-print-modal-btn"
+                        class="text-[#FAF6EE]/80 hover:text-[#FAF6EE] text-xl font-bold leading-none cursor-pointer p-1">
+                    &times;
+                </button>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="p-6 space-y-5 bg-[#FFFFFF]">
+                <p class="text-xs text-[#6E635A] leading-relaxed">
+                    Tentukan cakupan data transaksi yang akan dimuat ke dalam dokumen formal cetak / PDF PT Pabrik Gula Candi Baru.
+                </p>
+
+                <div class="space-y-3">
+                    <!-- Option 1: Semua Data / Semua Bulan -->
+                    <label class="flex items-start gap-3 p-3.5 border border-[#E3D9C9] bg-[#FAF6EE]/60 hover:bg-[#F3EAD8] cursor-pointer transition-colors group">
+                        <input type="radio"
+                               name="print_scope_option"
+                               value="all"
+                               class="mt-1 text-[#6B3F1E] focus:ring-[#6B3F1E] cursor-pointer"
+                               @checked($selectedMonth === '')>
+                        <div>
+                            <span class="text-sm font-semibold text-[#2A211A] group-hover:text-[#6B3F1E] block">
+                                Cetak Semua Data Transaksi
+                            </span>
+                            <span class="text-xs text-[#6E635A] mt-0.5 block">
+                                Mencakup seluruh rekapitulasi data 6 bulan terakhir (semua periode).
+                            </span>
+                        </div>
+                    </label>
+
+                    <!-- Option 2: Bulan Tertentu -->
+                    <label class="flex items-start gap-3 p-3.5 border border-[#E3D9C9] bg-[#FAF6EE]/60 hover:bg-[#F3EAD8] cursor-pointer transition-colors group">
+                        <input type="radio"
+                               name="print_scope_option"
+                               value="month"
+                               class="mt-1 text-[#6B3F1E] focus:ring-[#6B3F1E] cursor-pointer"
+                               @checked($selectedMonth !== '')>
+                        <div class="flex-1">
+                            <span class="text-sm font-semibold text-[#2A211A] group-hover:text-[#6B3F1E] block">
+                                Cetak Hanya Bulan Tertentu
+                            </span>
+                            <span class="text-xs text-[#6E635A] mt-0.5 block">
+                                Laporan akan disaring khusus untuk transaksi pada bulan yang Anda pilih.
+                            </span>
+
+                            <!-- Dropdown Pilihan Bulan -->
+                            <div id="print-month-selector-wrapper" class="mt-3 {{ $selectedMonth !== '' ? '' : 'hidden' }}">
+                                <label for="print_target_month" class="block text-[11px] font-semibold uppercase tracking-wider text-[#6B3F1E] mb-1">
+                                    Pilih Bulan Laporan:
+                                </label>
+                                <select id="print_target_month" class="input-heritage text-xs min-h-[38px] bg-[#FFFFFF] w-full">
+                                    @foreach($monthlyReport->reverse() as $m)
+                                        <option value="{{ $m['month_key'] }}" @selected($selectedMonth === $m['month_key'])>
+                                            {{ $m['month_label'] }} ({{ $m['total_orders'] }} order &bull; Rp {{ number_format($m['revenue'], 0, ',', '.') }})
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </div>
+                        </div>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="px-6 py-4 bg-[#FAF6EE] border-t border-[#E3D9C9] flex items-center justify-end gap-3">
+                <button type="button"
+                        id="cancel-print-modal-btn"
+                        class="btn-heritage-secondary text-xs py-2 px-4 cursor-pointer">
+                    Batal
+                </button>
+                <button type="button"
+                        id="confirm-print-btn"
+                        class="btn-heritage-primary text-xs py-2 px-5 cursor-pointer flex items-center gap-1.5">
+                    <span>Lanjutkan Cetak (PDF)</span>
+                    <span>&rarr;</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
         document.addEventListener('DOMContentLoaded', function () {
             const toggleBtn = document.getElementById('toggle-print-preview-btn');
             const closePreviewBtn = document.getElementById('close-print-preview-btn');
             const dashboardView = document.getElementById('interactive-report-dashboard');
             const formalDoc = document.getElementById('formal-print-document');
+
+            // Modal elements
+            const openModalBtn = document.getElementById('open-print-dialog-btn');
+            const printModal = document.getElementById('print-selection-modal');
+            const closeModalBtn = document.getElementById('close-print-modal-btn');
+            const cancelModalBtn = document.getElementById('cancel-print-modal-btn');
+            const confirmPrintBtn = document.getElementById('confirm-print-btn');
+            const scopeRadios = document.querySelectorAll('input[name="print_scope_option"]');
+            const monthSelectorWrapper = document.getElementById('print-month-selector-wrapper');
+            const targetMonthSelect = document.getElementById('print_target_month');
+
+            const currentSelectedMonth = @json($selectedMonth);
+            const currentSelectedStatus = @json($selectedStatus);
+            const currentSelectedEventId = @json($selectedEventId);
+            const currentSearch = @json($search);
+
+            function openModal() {
+                if (printModal) {
+                    printModal.classList.remove('hidden');
+                }
+            }
+
+            function closeModal() {
+                if (printModal) {
+                    printModal.classList.add('hidden');
+                }
+            }
+
+            if (openModalBtn) {
+                openModalBtn.addEventListener('click', openModal);
+            }
+
+            if (closeModalBtn) {
+                closeModalBtn.addEventListener('click', closeModal);
+            }
+
+            if (cancelModalBtn) {
+                cancelModalBtn.addEventListener('click', closeModal);
+            }
+
+            // Close on backdrop click
+            if (printModal) {
+                printModal.addEventListener('click', function (e) {
+                    if (e.target === printModal) {
+                        closeModal();
+                    }
+                });
+            }
+
+            // Toggle dropdown bulan sesuai opsi radio
+            scopeRadios.forEach(function (radio) {
+                radio.addEventListener('change', function () {
+                    if (this.value === 'month') {
+                        monthSelectorWrapper.classList.remove('hidden');
+                    } else {
+                        monthSelectorWrapper.classList.add('hidden');
+                    }
+                });
+            });
+
+            // Eksekusi cetak / redirect parameter bulan
+            if (confirmPrintBtn) {
+                confirmPrintBtn.addEventListener('click', function () {
+                    const selectedScope = document.querySelector('input[name="print_scope_option"]:checked')?.value || 'all';
+                    let desiredMonth = '';
+
+                    if (selectedScope === 'month' && targetMonthSelect) {
+                        desiredMonth = targetMonthSelect.value;
+                    }
+
+                    closeModal();
+
+                    // Jika periode yang dipilih sama persis dengan yang sedang aktif di halaman saat ini
+                    if (desiredMonth === currentSelectedMonth) {
+                        window.print();
+                    } else {
+                        // Redirect ke URL dengan parameter month yang diinginkan dan trigger print
+                        const url = new URL(window.location.origin + window.location.pathname);
+                        if (desiredMonth) {
+                            url.searchParams.set('month', desiredMonth);
+                        }
+                        if (currentSelectedStatus) {
+                            url.searchParams.set('status', currentSelectedStatus);
+                        }
+                        if (currentSelectedEventId) {
+                            url.searchParams.set('event_id', currentSelectedEventId);
+                        }
+                        if (currentSearch) {
+                            url.searchParams.set('search', currentSearch);
+                        }
+                        url.searchParams.set('auto_print', '1');
+                        window.location.href = url.toString();
+                    }
+                });
+            }
+
+            // Cek jika diarahkan dari pilihan modal dengan auto_print
+            const urlParams = new URLSearchParams(window.location.search);
+            if (urlParams.get('auto_print') === '1') {
+                // Hapus query param auto_print dari URL tanpa reload agar rapi
+                urlParams.delete('auto_print');
+                const cleanQuery = urlParams.toString() ? '?' + urlParams.toString() : '';
+                window.history.replaceState({}, document.title, window.location.pathname + cleanQuery + window.location.hash);
+
+                // Sedikit delay agar layout browser siap sebelum membuka dialog cetak
+                setTimeout(function () {
+                    window.print();
+                }, 300);
+            }
 
             function setPreviewMode(isPreview) {
                 if (!dashboardView || !formalDoc) return;
