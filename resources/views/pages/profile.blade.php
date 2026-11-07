@@ -137,8 +137,8 @@
                     @foreach($articles as $article)
                         <article data-reveal="up" class="py-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
                             <!-- Left 4/12: Cover Image or Heritage Archival Plate -->
-                            <div class="lg:col-span-4">
-                                <a href="{{ route('articles.show', $article->slug) }}" data-tilt-card class="group heritage-card-interactive block border border-[#E3D9C9] bg-[#FFFFFF] p-2 hover:border-[#6B3F1E] transition-colors">
+                            <div class="lg:col-span-4 heritage-3d-stage">
+                                <a href="{{ route('articles.show', $article->slug) }}" data-tilt-card data-tilt-max="5" class="group heritage-card-interactive block border border-[#E3D9C9] bg-[#FFFFFF] p-2 hover:border-[#6B3F1E] transition-colors">
                                     <div class="aspect-[16/10] bg-[#F3EAD8] border border-[#E3D9C9] overflow-hidden flex items-center justify-center">
                                         @if($article->cover_image)
                                             <img src="{{ $article->cover_image }}"
@@ -234,61 +234,64 @@
                         @php
                             $slides = $item->gallerySlides();
                         @endphp
-                        <figure tabindex="0"
-                                role="button"
-                                aria-label="Buka pop-up koleksi foto {{ $item->title }} ({{ count($slides) }} foto)"
-                                data-reveal="up"
-                                data-tilt-card
-                                data-tilt-max="2.2"
-                                data-gallery-trigger
-                                data-gallery-title="{{ $item->title }}"
-                                data-gallery-category="{{ $item->category }}"
-                                data-gallery-year="{{ $item->year_label ?? 'Arsip PG Candi Baru' }}"
-                                data-gallery-caption="{{ $item->caption }}"
-                                data-gallery-slides='@json($slides)'
-                                class="group heritage-card-interactive border border-[#E3D9C9] bg-[#FFFFFF] p-4 flex flex-col justify-between cursor-pointer hover:border-[#6B3F1E] transition-colors">
-                            <div>
-                                <div class="aspect-[16/9] bg-[#F3EAD8] border border-[#E3D9C9] overflow-hidden relative flex items-center justify-center">
-                                    <img src="{{ $slides[0]['url'] }}"
-                                         alt="{{ $item->title }}"
-                                         loading="lazy"
-                                         class="heritage-img-zoom w-full h-full object-cover">
+                        <div data-reveal="up" class="heritage-3d-stage heritage-stack-group">
+                            <div class="heritage-stack-plate-2" aria-hidden="true"></div>
+                            <div class="heritage-stack-plate-1" aria-hidden="true"></div>
+                            <figure tabindex="0"
+                                    role="button"
+                                    aria-label="Buka pop-up koleksi foto {{ $item->title }} ({{ count($slides) }} foto)"
+                                    data-tilt-card
+                                    data-tilt-max="5"
+                                    data-gallery-trigger
+                                    data-gallery-title="{{ $item->title }}"
+                                    data-gallery-category="{{ $item->category }}"
+                                    data-gallery-year="{{ $item->year_label ?? 'Arsip PG Candi Baru' }}"
+                                    data-gallery-caption="{{ $item->caption }}"
+                                    data-gallery-slides='@json($slides)'
+                                    class="group heritage-card-interactive relative z-10 border border-[#E3D9C9] bg-[#FFFFFF] p-4 flex flex-col justify-between cursor-pointer hover:border-[#6B3F1E] transition-colors h-full">
+                                <div>
+                                    <div class="aspect-[16/9] bg-[#F3EAD8] border border-[#E3D9C9] overflow-hidden relative flex items-center justify-center">
+                                        <img src="{{ $slides[0]['url'] }}"
+                                             alt="{{ $item->title }}"
+                                             loading="lazy"
+                                             class="heritage-img-zoom w-full h-full object-cover">
 
-                                    <!-- Multi-Photo Count Indicator Badge -->
-                                    <div class="absolute bottom-3 right-3 bg-[#2A211A]/90 text-[#FAF6EE] px-3 py-1 text-xs font-semibold tracking-wider flex items-center gap-1.5 border border-[#C8A24A]">
-                                        <span>Lihat {{ count($slides) }} Foto</span>
-                                        <span>&nearr;</span>
+                                        <!-- Multi-Photo Count Indicator Badge -->
+                                        <div class="depth-z-front absolute bottom-3 right-3 bg-[#2A211A]/90 text-[#FAF6EE] px-3 py-1 text-xs font-semibold tracking-wider flex items-center gap-1.5 border border-[#C8A24A] shadow-md">
+                                            <span>Lihat {{ count($slides) }} Foto</span>
+                                            <span>&nearr;</span>
+                                        </div>
                                     </div>
-                                </div>
 
-                                <!-- Mini Thumbnail Strip Preview -->
-                                @if(count($slides) > 1)
-                                    <div class="grid grid-cols-3 gap-2 pt-2">
-                                        @foreach(array_slice($slides, 0, 3) as $thumbIndex => $thumbSlide)
-                                            <div class="h-12 border border-[#E3D9C9] bg-[#FAF6EE] overflow-hidden">
-                                                <img src="{{ $thumbSlide['url'] }}"
-                                                     alt="{{ $thumbSlide['caption'] }}"
-                                                     loading="lazy"
-                                                     class="w-full h-full object-cover opacity-85 group-hover:opacity-100 transition-opacity">
-                                            </div>
-                                        @endforeach
-                                    </div>
-                                @endif
-
-                                <div class="pt-4 space-y-1.5">
-                                    <div class="flex items-center justify-between text-xs text-[#A67C52] font-semibold uppercase tracking-wider">
-                                        <span>{{ $item->category }}</span>
-                                        <span>{{ $item->year_label }}</span>
-                                    </div>
-                                    <h3 class="font-serif text-xl font-semibold text-[#2A211A] group-hover:text-[#6B3F1E] transition-colors">
-                                        {{ $item->title }}
-                                    </h3>
-                                    @if($item->caption)
-                                        <p class="text-sm text-[#6E635A] leading-relaxed">{{ $item->caption }}</p>
+                                    <!-- Mini Thumbnail Strip Preview -->
+                                    @if(count($slides) > 1)
+                                        <div class="grid grid-cols-3 gap-2 pt-2">
+                                            @foreach(array_slice($slides, 0, 3) as $thumbIndex => $thumbSlide)
+                                                <div class="h-12 border border-[#E3D9C9] bg-[#FAF6EE] overflow-hidden">
+                                                    <img src="{{ $thumbSlide['url'] }}"
+                                                         alt="{{ $thumbSlide['caption'] }}"
+                                                         loading="lazy"
+                                                         class="w-full h-full object-cover opacity-85 group-hover:opacity-100 transition-opacity">
+                                                </div>
+                                            @endforeach
+                                        </div>
                                     @endif
+
+                                    <div class="pt-4 space-y-1.5">
+                                        <div class="flex items-center justify-between text-xs text-[#A67C52] font-semibold uppercase tracking-wider">
+                                            <span>{{ $item->category }}</span>
+                                            <span>{{ $item->year_label }}</span>
+                                        </div>
+                                        <h3 class="font-serif text-xl font-semibold text-[#2A211A] group-hover:text-[#6B3F1E] transition-colors">
+                                            {{ $item->title }}
+                                        </h3>
+                                        @if($item->caption)
+                                            <p class="text-sm text-[#6E635A] leading-relaxed">{{ $item->caption }}</p>
+                                        @endif
+                                    </div>
                                 </div>
-                            </div>
-                        </figure>
+                            </figure>
+                        </div>
                     @endforeach
                 </div>
             @endif

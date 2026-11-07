@@ -274,20 +274,181 @@ html.js-motion-ready [data-reveal].is-revealed {
     white-space: nowrap;
 }
 
-/* Tactile Interactive Cards & 3D Archival Plate Tilt */
-.heritage-card-interactive {
-    transition:
-        transform 280ms cubic-bezier(0.22, 1, 0.36, 1),
-        box-shadow 280ms cubic-bezier(0.22, 1, 0.36, 1),
-        border-color 220ms ease,
-        background-color 220ms ease;
-    transform: perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translate3d(0, 0, 0);
+/* Tactile Interactive Cards & 3D Archival Plate Tilt (60fps LERP Spring + Preserve-3D) */
+.heritage-3d-stage {
+    perspective: 1200px;
 }
 
-.heritage-card-interactive:hover {
-    transform: perspective(1000px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translate3d(0, -4px, 0);
-    box-shadow: 0 14px 28px -12px rgba(107, 63, 30, 0.16);
+.heritage-card-interactive,
+.heritage-3d-card {
+    position: relative;
+    transform-style: preserve-3d;
+    transition:
+        box-shadow 320ms cubic-bezier(0.22, 1, 0.36, 1),
+        border-color 240ms ease,
+        background-color 240ms ease;
+    transform: perspective(1150px) rotateX(var(--tilt-x, 0deg)) rotateY(var(--tilt-y, 0deg)) translate3d(0, var(--lift-y, 0px), 0);
+    box-shadow:
+        calc(var(--tilt-y-num, 0) * -1.4px) calc(var(--tilt-x-num, 0) * 1.4px + 10px) 26px -12px rgba(42, 33, 26, 0.16),
+        0 2px 6px -1px rgba(107, 63, 30, 0.08);
+    will-change: transform, box-shadow;
+}
+
+.heritage-card-interactive:hover,
+.heritage-3d-card:hover {
+    --lift-y: -4px;
+    box-shadow:
+        calc(var(--tilt-y-num, 0) * -1.8px) calc(var(--tilt-x-num, 0) * 1.8px + 18px) 38px -12px rgba(107, 63, 30, 0.24),
+        0 6px 14px -3px rgba(200, 162, 74, 0.16);
     border-color: var(--color-primary);
+}
+
+/* Specular Brass & Warm Light Glare Reflection */
+.heritage-3d-glare {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: radial-gradient(
+        460px circle at var(--glare-x, 50%) var(--glare-y, 50%),
+        rgba(200, 162, 74, 0.22),
+        rgba(255, 255, 255, 0.07) 42%,
+        transparent 75%
+    );
+    opacity: var(--glare-alpha, 0);
+    transition: opacity 260ms ease;
+    z-index: 25;
+}
+
+/* Z-Axis Elevation Layers inside preserve-3d */
+.depth-z-back {
+    transform: translateZ(-22px);
+    transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.depth-z-mid {
+    transform: translateZ(16px);
+    transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.depth-z-front {
+    transform: translateZ(34px);
+    transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.depth-z-badge {
+    transform: translateZ(52px);
+    transition: transform 600ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+/* Exploded 3D Diorama Mode */
+.diorama-exploded.heritage-card-interactive,
+.diorama-exploded.heritage-3d-card {
+    --tilt-x: 11deg !important;
+    --tilt-y: -15deg !important;
+    box-shadow: 24px 32px 54px -16px rgba(42, 33, 26, 0.32) !important;
+}
+
+.diorama-exploded [data-diorama-plane="grid"] {
+    transform: translateZ(-48px) scale(0.95) !important;
+}
+
+.diorama-exploded [data-diorama-plane="building"] {
+    transform: translateZ(22px) translateY(-6px) !important;
+    filter: drop-shadow(0 14px 16px rgba(42, 33, 26, 0.22));
+}
+
+.diorama-exploded [data-diorama-plane="mechanics"] {
+    transform: translateZ(68px) translateY(-12px) !important;
+    filter: drop-shadow(0 20px 22px rgba(42, 33, 26, 0.28));
+}
+
+.diorama-exploded [data-diorama-plane="plaque"] {
+    transform: translateZ(96px) translateY(-14px) !important;
+}
+
+/* 3D Stacked Archival Plates (Fan-Out on Hover) */
+.heritage-stack-group {
+    position: relative;
+    perspective: 1100px;
+}
+
+.heritage-stack-plate-1,
+.heritage-stack-plate-2 {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    transition: transform 480ms cubic-bezier(0.22, 1, 0.36, 1), opacity 380ms ease;
+}
+
+.heritage-stack-plate-1 {
+    background-color: #F3EAD8;
+    border: 1px solid #A67C52;
+    transform: translate3d(6px, -6px, -18px) rotate(1.4deg);
+    z-index: 0;
+}
+
+.heritage-stack-plate-2 {
+    background-color: #E3D9C9;
+    border: 1px solid #6B3F1E;
+    transform: translate3d(-7px, -10px, -36px) rotate(-1.8deg);
+    opacity: 0.75;
+    z-index: 0;
+}
+
+.heritage-stack-group:hover .heritage-stack-plate-1 {
+    transform: translate3d(12px, -11px, -10px) rotate(3deg);
+}
+
+.heritage-stack-group:hover .heritage-stack-plate-2 {
+    transform: translate3d(-14px, -16px, -22px) rotate(-3.6deg);
+    opacity: 0.95;
+}
+
+/* 3D Perforated Heritage E-Ticket Pass */
+.ticket-3d-perforated {
+    position: relative;
+    background: linear-gradient(135deg, #FAF6EE 0%, #FFFFFF 52%, #F3EAD8 100%);
+    border: 2px solid #C8A24A;
+    box-shadow: 0 14px 30px -12px rgba(107, 63, 30, 0.2);
+}
+
+.ticket-3d-perforated::before,
+.ticket-3d-perforated::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 16px;
+    height: 16px;
+    margin-top: -8px;
+    border-radius: 9999px;
+    background-color: var(--color-surface);
+    border: 2px solid #C8A24A;
+    z-index: 20;
+    pointer-events: none;
+}
+
+.ticket-3d-perforated::before {
+    left: -10px;
+}
+
+.ticket-3d-perforated::after {
+    right: -10px;
+}
+
+/* 3D Pressable Session Keycap Pill */
+.session-pill-3d {
+    transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1), box-shadow 200ms ease, border-color 200ms ease;
+    box-shadow: 0 3px 0 0 #E3D9C9;
+}
+
+.session-pill-3d:hover {
+    transform: translate3d(0, -2.5px, 12px);
+    box-shadow: 0 5px 0 0 #6B3F1E, 0 10px 18px -6px rgba(107, 63, 30, 0.22);
+}
+
+.session-pill-3d:active {
+    transform: translate3d(0, 1px, 4px);
+    box-shadow: 0 1px 0 0 #6B3F1E;
 }
 
 /* Archival Image Slow Pan & Zoom */
@@ -359,9 +520,36 @@ html.js-motion-ready [data-reveal].is-revealed {
     }
 }
 
+@keyframes flywheel-reverse {
+    0% {
+        transform: rotate(360deg);
+    }
+    100% {
+        transform: rotate(0deg);
+    }
+}
+
+@keyframes piston-reciprocate {
+    0%, 100% {
+        transform: translateX(0px);
+    }
+    50% {
+        transform: translateX(22px);
+    }
+}
+
 .flywheel-spin-group {
     transform-origin: 660px 335px;
     animation: flywheel-continuous 18s linear infinite;
+}
+
+.secondary-gear-spin {
+    transform-origin: 582px 362px;
+    animation: flywheel-reverse 9s linear infinite;
+}
+
+.piston-rod-animated {
+    animation: piston-reciprocate 2.4s ease-in-out infinite;
 }
 
 .steam-puff-1 {

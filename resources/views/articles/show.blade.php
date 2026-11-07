@@ -4,12 +4,6 @@
 
 @section('content')
     <article class="relative overflow-hidden py-12 lg:py-16">
-        <div aria-hidden="true"
-             data-parallax-speed="-0.12"
-             class="heritage-watermark absolute top-8 right-6 text-[68px] sm:text-[124px]">
-            CATATAN SEJARAH
-        </div>
-
         <div class="relative z-10 max-w-[900px] mx-auto px-4 sm:px-6 space-y-8">
             <!-- Breadcrumb & Admin Quick-Edit Toolbar -->
             <div data-reveal="down" class="flex flex-wrap items-center justify-between gap-4 border-b border-[#E3D9C9] pb-4">
@@ -59,21 +53,23 @@
                 </div>
             </header>
 
-            <!-- Cover Visual with Parallax Window -->
-            <figure data-reveal="scale" data-tilt-card class="heritage-card-interactive border border-[#E3D9C9] bg-[#FFFFFF] p-3">
-                <div class="aspect-[16/9] bg-[#F3EAD8] border border-[#E3D9C9] overflow-hidden flex items-center justify-center">
-                    @if($article->cover_image)
-                        <img data-parallax-speed="-0.06" src="{{ $article->cover_image }}" alt="{{ $article->title }}" class="w-full h-full object-cover scale-105">
-                    @else
-                        <svg data-parallax-speed="-0.04" class="w-full h-full" viewBox="0 0 800 450" xmlns="http://www.w3.org/2000/svg">
-                            <rect width="800" height="450" fill="#F3EAD8"/>
-                            <rect x="30" y="30" width="740" height="390" fill="none" stroke="#A67C52" stroke-width="2"/>
-                            <text x="400" y="210" text-anchor="middle" fill="#6B3F1E" font-family="Georgia, serif" font-size="24" font-weight="bold">{{ strtoupper($article->category) }}</text>
-                            <text x="400" y="245" text-anchor="middle" fill="#6E635A" font-family="sans-serif" font-size="15">DOKUMENTASI &amp; LITERASI SEJARAH PT PABRIK GULA CANDI BARU</text>
-                        </svg>
-                    @endif
-                </div>
-            </figure>
+            <!-- Cover Visual with 3D Tilt Stage & Parallax Window -->
+            <div class="heritage-3d-stage">
+                <figure data-reveal="scale" data-tilt-card data-tilt-max="5" class="heritage-card-interactive border border-[#E3D9C9] bg-[#FFFFFF] p-3">
+                    <div class="aspect-[16/9] bg-[#F3EAD8] border border-[#E3D9C9] overflow-hidden flex items-center justify-center">
+                        @if($article->cover_image)
+                            <img data-parallax-speed="-0.06" src="{{ $article->cover_image }}" alt="{{ $article->title }}" class="w-full h-full object-cover scale-105">
+                        @else
+                            <svg data-parallax-speed="-0.04" class="w-full h-full" viewBox="0 0 800 450" xmlns="http://www.w3.org/2000/svg">
+                                <rect width="800" height="450" fill="#F3EAD8"/>
+                                <rect x="30" y="30" width="740" height="390" fill="none" stroke="#A67C52" stroke-width="2"/>
+                                <text x="400" y="210" text-anchor="middle" fill="#6B3F1E" font-family="Georgia, serif" font-size="24" font-weight="bold">{{ strtoupper($article->category) }}</text>
+                                <text x="400" y="245" text-anchor="middle" fill="#6E635A" font-family="sans-serif" font-size="15">DOKUMENTASI &amp; LITERASI SEJARAH PT PABRIK GULA CANDI BARU</text>
+                            </svg>
+                        @endif
+                    </div>
+                </figure>
+            </div>
 
             <!-- Editorial Body Prose (68ch max width per DESIGN.md §6) -->
             <div data-reveal-stagger="90" class="max-w-[68ch] mx-auto space-y-5 text-base sm:text-[17px] text-[#2A211A] leading-[1.75]">

@@ -13,11 +13,17 @@
         <div class="relative z-10 max-w-[1200px] mx-auto px-4 sm:px-6 py-10 lg:py-16">
             <!-- Top Jumbotron Header Bar & Slide Controls -->
             <div data-reveal="down" class="flex flex-wrap items-center justify-between gap-4 pb-5 mb-6 border-b border-[#E3D9C9]">
-                <div class="flex items-center gap-3">
+                <div class="flex flex-wrap items-center gap-3">
                     <span class="inline-block w-2.5 h-2.5 bg-[#C8A24A] border border-[#6B3F1E]"></span>
                     <span id="jumbotron-active-badge" class="text-xs uppercase tracking-[0.08em] font-semibold text-[#6B3F1E]">
                         Slide Utama &bull; Kunjungan Edukasi &amp; Sejarah Resmi
                     </span>
+                    <button type="button"
+                            data-diorama-explode-toggle="hero-3d-diorama-plate"
+                            aria-pressed="false"
+                            class="px-2.5 py-1 text-xs font-semibold border border-[#C8A24A] bg-[#F3EAD8] text-[#6B3F1E] hover:bg-[#6B3F1E] hover:text-[#FAF6EE] transition-all cursor-pointer">
+                        <span data-explode-label>Mode Bedah 3D (Exploded View)</span>
+                    </button>
                 </div>
 
                 @if($totalSlides > 1)
@@ -59,70 +65,97 @@
                          data-jumbotron-slide="0"
                          data-slide-label="Slide Utama &bull; Kunjungan Edukasi &amp; Sejarah Resmi">
                         <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
-                            <!-- 7/12 Archival Factory Illustration & Multi-Layer Parallax Plate -->
-                            <div data-reveal="left" class="lg:col-span-7 order-1 lg:order-1">
-                                <figure data-tilt-card data-tilt-max="2.5" class="heritage-card-interactive border border-[#E3D9C9] bg-[#FFFFFF] p-3 sm:p-4">
-                                    <div class="aspect-[16/10] bg-[#F3EAD8] border border-[#E3D9C9] relative overflow-hidden flex items-center justify-center">
-                                        <svg class="w-full h-full object-cover" viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustrasi Arsip Arsitektur PT Pabrik Gula Candi Baru 1911">
-                                            <rect width="800" height="500" fill="#F3EAD8"></rect>
-
-                                            <!-- Layer 1: Architectural Blueprint Grid Lines (Deep Background Parallax) -->
-                                            <g data-mouse-depth="-8" stroke="#E3D9C9" stroke-width="1">
-                                                <line x1="0" y1="100" x2="800" y2="100"></line>
-                                                <line x1="0" y1="200" x2="800" y2="200"></line>
-                                                <line x1="0" y1="300" x2="800" y2="300"></line>
-                                                <line x1="0" y1="410" x2="800" y2="410"></line>
-                                                <line x1="160" y1="0" x2="160" y2="500"></line>
-                                                <line x1="320" y1="0" x2="320" y2="500"></line>
-                                                <line x1="480" y1="0" x2="480" y2="500"></line>
-                                                <line x1="640" y1="0" x2="640" y2="500"></line>
-                                            </g>
-
-                                            <!-- Layer 2: Rising Steam Puffs from 1911 Smokestack -->
-                                            <g data-mouse-depth="18" fill="#FFFFFF" opacity="0.65">
-                                                <circle class="steam-puff-1" cx="556" cy="56" r="14"></circle>
-                                                <circle class="steam-puff-2" cx="545" cy="42" r="19"></circle>
-                                                <circle class="steam-puff-3" cx="564" cy="34" r="16"></circle>
-                                            </g>
-
-                                            <!-- Layer 3: Classic Smokestack & Colonial Gable Roofs (Midground Parallax) -->
-                                            <g data-mouse-depth="10">
-                                                <path d="M540 85 L575 85 L590 410 L525 410 Z" fill="#6B3F1E"></path>
-                                                <rect x="533" y="72" width="49" height="14" fill="#2A211A"></rect>
-                                                <polygon points="130,240 245,155 360,240" fill="#A67C52" stroke="#6B3F1E" stroke-width="3"></polygon>
-                                                <polygon points="320,240 425,165 530,240" fill="#A67C52" stroke="#6B3F1E" stroke-width="3"></polygon>
-                                                <rect x="145" y="240" width="370" height="170" fill="#FAF6EE" stroke="#6B3F1E" stroke-width="3"></rect>
-                                                <!-- Arched Colonial Windows -->
-                                                <g fill="#6B3F1E">
-                                                    <rect x="175" y="270" width="36" height="65" rx="18"></rect>
-                                                    <rect x="235" y="270" width="36" height="65" rx="18"></rect>
-                                                    <rect x="295" y="270" width="36" height="65" rx="18"></rect>
-                                                    <rect x="375" y="270" width="36" height="65" rx="18"></rect>
-                                                    <rect x="435" y="270" width="36" height="65" rx="18"></rect>
-                                                    <rect x="240" y="355" width="75" height="55"></rect>
+                            <!-- 7/12 Archival Factory Illustration & Multi-Plane 3D Diorama Plate -->
+                            <div data-reveal="left" class="lg:col-span-7 order-1 lg:order-1 heritage-3d-stage">
+                                <figure id="hero-3d-diorama-plate" data-tilt-card data-tilt-max="6" class="heritage-card-interactive border border-[#E3D9C9] bg-[#FFFFFF] p-3 sm:p-4">
+                                    <div class="aspect-[16/10] bg-[#F3EAD8] border border-[#E3D9C9] relative flex items-center justify-center" style="transform-style: preserve-3d;">
+                                        <!-- Plane 1: Deep Architectural Blueprint Grid (Z = -22px) -->
+                                        <div data-diorama-plane="grid" class="depth-z-back absolute inset-0 overflow-hidden pointer-events-none">
+                                            <svg class="w-full h-full object-cover" viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                                <rect width="800" height="500" fill="#F3EAD8"></rect>
+                                                <g data-mouse-depth="-8" stroke="#E3D9C9" stroke-width="1">
+                                                    <line x1="0" y1="100" x2="800" y2="100"></line>
+                                                    <line x1="0" y1="200" x2="800" y2="200"></line>
+                                                    <line x1="0" y1="300" x2="800" y2="300"></line>
+                                                    <line x1="0" y1="410" x2="800" y2="410"></line>
+                                                    <line x1="160" y1="0" x2="160" y2="500"></line>
+                                                    <line x1="320" y1="0" x2="320" y2="500"></line>
+                                                    <line x1="480" y1="0" x2="480" y2="500"></line>
+                                                    <line x1="640" y1="0" x2="640" y2="500"></line>
                                                 </g>
-                                            </g>
+                                            </svg>
+                                        </div>
 
-                                            <!-- Layer 4: Rotating Steam Flywheel Emblem (Mechanical Motion + Foreground Depth) -->
-                                            <g data-mouse-depth="16">
-                                                <g class="flywheel-spin-group">
-                                                    <circle cx="660" cy="335" r="55" fill="none" stroke="#6B3F1E" stroke-width="6"></circle>
-                                                    <circle cx="660" cy="335" r="14" fill="#C8A24A" stroke="#6B3F1E" stroke-width="3"></circle>
-                                                    <line x1="660" y1="280" x2="660" y2="390" stroke="#6B3F1E" stroke-width="3"></line>
-                                                    <line x1="605" y1="335" x2="715" y2="335" stroke="#6B3F1E" stroke-width="3"></line>
-                                                    <line x1="621" y1="296" x2="699" y2="374" stroke="#A67C52" stroke-width="2"></line>
-                                                    <line x1="699" y1="296" x2="621" y2="374" stroke="#A67C52" stroke-width="2"></line>
+                                        <!-- Plane 2: Midground Colonial Gable Roofs & 1911 Brick Smokestack (Z = +16px) -->
+                                        <div data-diorama-plane="building" class="depth-z-mid absolute inset-0 pointer-events-none">
+                                            <svg class="w-full h-full object-cover" viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Ilustrasi Arsip Arsitektur PT Pabrik Gula Candi Baru 1911">
+                                                <!-- Rising Steam Puffs from 1911 Smokestack -->
+                                                <g data-mouse-depth="18" fill="#FFFFFF" opacity="0.72">
+                                                    <circle class="steam-puff-1" cx="556" cy="56" r="14"></circle>
+                                                    <circle class="steam-puff-2" cx="545" cy="42" r="19"></circle>
+                                                    <circle class="steam-puff-3" cx="564" cy="34" r="16"></circle>
                                                 </g>
-                                            </g>
 
-                                            <!-- Layer 5: Lori Rail Track & Archival Plate Caption -->
-                                            <g data-mouse-depth="22">
-                                                <line x1="40" y1="410" x2="760" y2="410" stroke="#2A211A" stroke-width="4"></line>
-                                                <line class="lori-rail-animated" x1="40" y1="422" x2="760" y2="422" stroke="#6B3F1E" stroke-width="2"></line>
-                                                <text x="60" y="62" fill="#6B3F1E" font-family="Georgia, serif" font-size="16" font-weight="bold">ARSIP HERITAGE — SIDOARJO, ANNO 1911</text>
-                                                <text x="60" y="460" fill="#6E635A" font-family="sans-serif" font-size="13" letter-spacing="2">STASIUN GILINGAN &amp; EMPLASEMEN LORI PT PABRIK GULA CANDI BARU</text>
-                                            </g>
-                                        </svg>
+                                                <!-- Classic Smokestack & Colonial Gable Roofs -->
+                                                <g data-mouse-depth="10">
+                                                    <path d="M540 85 L575 85 L590 410 L525 410 Z" fill="#6B3F1E"></path>
+                                                    <rect x="533" y="72" width="49" height="14" fill="#2A211A"></rect>
+                                                    <polygon points="130,240 245,155 360,240" fill="#A67C52" stroke="#6B3F1E" stroke-width="3"></polygon>
+                                                    <polygon points="320,240 425,165 530,240" fill="#A67C52" stroke="#6B3F1E" stroke-width="3"></polygon>
+                                                    <rect x="145" y="240" width="370" height="170" fill="#FAF6EE" stroke="#6B3F1E" stroke-width="3"></rect>
+                                                    <!-- Arched Colonial Windows -->
+                                                    <g fill="#6B3F1E">
+                                                        <rect x="175" y="270" width="36" height="65" rx="18"></rect>
+                                                        <rect x="235" y="270" width="36" height="65" rx="18"></rect>
+                                                        <rect x="295" y="270" width="36" height="65" rx="18"></rect>
+                                                        <rect x="375" y="270" width="36" height="65" rx="18"></rect>
+                                                        <rect x="435" y="270" width="36" height="65" rx="18"></rect>
+                                                        <rect x="240" y="355" width="75" height="55"></rect>
+                                                    </g>
+                                                </g>
+                                            </svg>
+                                        </div>
+
+                                        <!-- Plane 3: Foreground 3D Mechanical Assembly (Flywheel, Counter-Gear, Piston Rod & Lori Track, Z = +34px) -->
+                                        <div data-diorama-plane="mechanics" class="depth-z-front absolute inset-0 pointer-events-none">
+                                            <svg class="w-full h-full object-cover" viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                                <g data-mouse-depth="16">
+                                                    <!-- Reciprocating Steam Piston Rod -->
+                                                    <g class="piston-rod-animated">
+                                                        <rect x="520" y="328" width="95" height="14" rx="4" fill="#A67C52" stroke="#2A211A" stroke-width="2"></rect>
+                                                        <circle cx="528" cy="335" r="5" fill="#C8A24A"></circle>
+                                                    </g>
+                                                    <!-- Primary Rotating Steam Flywheel -->
+                                                    <g class="flywheel-spin-group">
+                                                        <circle cx="660" cy="335" r="55" fill="none" stroke="#6B3F1E" stroke-width="6"></circle>
+                                                        <circle cx="660" cy="335" r="14" fill="#C8A24A" stroke="#6B3F1E" stroke-width="3"></circle>
+                                                        <line x1="660" y1="280" x2="660" y2="390" stroke="#6B3F1E" stroke-width="3"></line>
+                                                        <line x1="605" y1="335" x2="715" y2="335" stroke="#6B3F1E" stroke-width="3"></line>
+                                                        <line x1="621" y1="296" x2="699" y2="374" stroke="#A67C52" stroke-width="2"></line>
+                                                        <line x1="699" y1="296" x2="621" y2="374" stroke="#A67C52" stroke-width="2"></line>
+                                                    </g>
+                                                    <!-- Secondary Counter-Rotating Reduction Gear -->
+                                                    <g class="secondary-gear-spin">
+                                                        <circle cx="585" cy="365" r="24" fill="#FAF6EE" stroke="#2A211A" stroke-width="4" stroke-dasharray="8 4"></circle>
+                                                        <circle cx="585" cy="365" r="8" fill="#C8A24A" stroke="#2A211A" stroke-width="2"></circle>
+                                                    </g>
+                                                </g>
+
+                                                <!-- Lori Rail Track & Archival Plate Caption -->
+                                                <g data-mouse-depth="22">
+                                                    <line x1="40" y1="410" x2="760" y2="410" stroke="#2A211A" stroke-width="4"></line>
+                                                    <line class="lori-rail-animated" x1="40" y1="422" x2="760" y2="422" stroke="#6B3F1E" stroke-width="2"></line>
+                                                    <text x="60" y="62" fill="#6B3F1E" font-family="Georgia, serif" font-size="16" font-weight="bold">ARSIP HERITAGE — SIDOARJO, ANNO 1911</text>
+                                                    <text x="60" y="460" fill="#6E635A" font-family="sans-serif" font-size="13" letter-spacing="2">STASIUN GILINGAN &amp; EMPLASEMEN LORI PT PABRIK GULA CANDI BARU</text>
+                                                </g>
+                                            </svg>
+                                        </div>
+
+                                        <!-- Plane 4: Floating Brass Year Badge (Z = +52px) -->
+                                        <div data-diorama-plane="plaque" class="depth-z-badge absolute top-3 right-3 bg-[#2A211A] text-[#FAF6EE] border border-[#C8A24A] px-3 py-1.5 shadow-md pointer-events-none">
+                                            <span class="block text-[10px] uppercase tracking-[0.14em] text-[#C8A24A] font-semibold">Cagar Industri Aktif</span>
+                                            <span class="font-serif text-sm font-bold tracking-wide">EST. {{ $profile?->established_year ?? 1911 }} &bull; SIDOARJO</span>
+                                        </div>
                                     </div>
                                     <figcaption class="pt-3 flex flex-wrap items-center justify-between text-xs text-[#6E635A] gap-2">
                                         <span>Dok. Arsip: Kompleks Stasiun Giling &amp; Cerobong Bata PT Pabrik Gula Candi Baru (Berdiri <span data-count-up="{{ $profile?->established_year ?? 1911 }}" data-count-from="1885" class="tabular-nums font-semibold text-[#2A211A]">{{ $profile?->established_year ?? 1911 }}</span>)</span>
@@ -180,8 +213,8 @@
                              data-slide-label="Ringkasan Artikel Heritage #{{ $idx + 1 }} &bull; {{ e($article->category) }}">
                             <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
                                 <!-- 7/12 Article Visual Plate -->
-                                <div class="lg:col-span-7 order-1 lg:order-1">
-                                    <figure data-tilt-card data-tilt-max="2.5" class="group heritage-card-interactive border border-[#E3D9C9] bg-[#FFFFFF] p-3 sm:p-4">
+                                <div class="lg:col-span-7 order-1 lg:order-1 heritage-3d-stage">
+                                    <figure data-tilt-card data-tilt-max="5" class="group heritage-card-interactive border border-[#E3D9C9] bg-[#FFFFFF] p-3 sm:p-4">
                                         <div class="aspect-[16/10] bg-[#F3EAD8] border border-[#E3D9C9] relative overflow-hidden flex items-center justify-center">
                                             @if($article->cover_image)
                                                 <img src="{{ $article->cover_image }}"
@@ -312,20 +345,24 @@
                             $totalRemaining = $openSchedules->sum(fn($s) => $s->remainingQuota());
                         @endphp
                         <article data-reveal="up" class="py-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                            <!-- Small Archival Thumbnail + Meta (List Item Pattern per DESIGN.md §6 & §8) -->
-                            <div class="lg:col-span-3">
-                                <div data-tilt-card class="heritage-card-interactive aspect-[4/3] bg-[#F3EAD8] border border-[#E3D9C9] p-4 flex flex-col justify-between">
-                                    <span class="text-[11px] uppercase tracking-[0.08em] text-[#6B3F1E] font-semibold tabular-nums">
-                                        Durasi <span data-count-up="{{ $event->duration_minutes }}">{{ $event->duration_minutes }}</span> Menit
-                                    </span>
-                                    <div class="my-auto py-2">
-                                        <span class="font-serif text-lg font-semibold text-[#2A211A] block leading-snug">
-                                            {{ $event->title }}
+                            <!-- Small Archival Thumbnail + 3D Stacked Plate Meta (List Item Pattern per DESIGN.md §6 & §8) -->
+                            <div class="lg:col-span-3 heritage-3d-stage">
+                                <div class="heritage-stack-group">
+                                    <div class="heritage-stack-plate-2" aria-hidden="true"></div>
+                                    <div class="heritage-stack-plate-1" aria-hidden="true"></div>
+                                    <div data-tilt-card data-tilt-max="6" class="heritage-card-interactive relative z-10 aspect-[4/3] bg-[#F3EAD8] border border-[#E3D9C9] p-4 flex flex-col justify-between">
+                                        <span class="depth-z-mid text-[11px] uppercase tracking-[0.08em] text-[#6B3F1E] font-semibold tabular-nums">
+                                            Durasi <span data-count-up="{{ $event->duration_minutes }}">{{ $event->duration_minutes }}</span> Menit
+                                        </span>
+                                        <div class="depth-z-front my-auto py-2">
+                                            <span class="font-serif text-lg font-semibold text-[#2A211A] block leading-snug">
+                                                {{ $event->title }}
+                                            </span>
+                                        </div>
+                                        <span class="depth-z-mid text-xs text-[#6E635A] border-t border-[#E3D9C9] pt-2">
+                                            Titik Kumpul: {{ $event->meeting_point }}
                                         </span>
                                     </div>
-                                    <span class="text-xs text-[#6E635A] border-t border-[#E3D9C9] pt-2">
-                                        Titik Kumpul: {{ $event->meeting_point }}
-                                    </span>
                                 </div>
                             </div>
 
@@ -359,7 +396,7 @@
                                             @foreach($event->schedules->take(4) as $schedule)
                                                 @if($schedule->isAvailable())
                                                     <a href="{{ route('events.show', ['slug' => $event->slug, 'schedule_id' => $schedule->id]) }}#wizard-step-2"
-                                                       class="heritage-card-interactive px-3 py-1.5 text-xs border border-[#E3D9C9] bg-[#FFFFFF] hover:border-[#6B3F1E] hover:bg-[#F3EAD8] transition-all tabular-nums">
+                                                       class="session-pill-3d heritage-card-interactive px-3 py-1.5 text-xs border border-[#E3D9C9] bg-[#FFFFFF] hover:border-[#6B3F1E] hover:bg-[#F3EAD8] transition-all tabular-nums">
                                                         <strong class="text-[#2A211A]">{{ $schedule->tour_date->translatedFormat('d M Y') }}</strong>
                                                         <span class="text-[#6E635A]">({{ $schedule->formattedTimeRange() }})</span>
                                                         <span class="text-[#4A6B3A] font-semibold ml-1">&bull; Sisa {{ $schedule->remainingQuota() }}</span>

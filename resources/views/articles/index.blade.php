@@ -4,12 +4,6 @@
 
 @section('content')
     <section class="relative overflow-hidden border-b border-[#E3D9C9] py-12">
-        <div aria-hidden="true"
-             data-parallax-speed="-0.14"
-             class="heritage-watermark absolute top-3 right-6 text-[68px] sm:text-[124px]">
-            JURNAL HERITAGE
-        </div>
-
         <div class="relative z-10 max-w-[1200px] mx-auto px-4 sm:px-6 space-y-4">
             <div data-reveal="down">
                 <a href="{{ route('profile') }}" class="link-heritage-tertiary text-xs uppercase tracking-wider">
@@ -50,21 +44,25 @@
                 <div data-reveal-stagger="120" class="divide-y divide-[#E3D9C9] border-t border-b border-[#E3D9C9]">
                     @foreach($articles as $article)
                         <article data-reveal="up" class="py-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                            <div class="lg:col-span-4">
-                                <a href="{{ route('articles.show', $article->slug) }}" data-tilt-card class="group heritage-card-interactive block border border-[#E3D9C9] bg-[#FFFFFF] p-2 hover:border-[#6B3F1E]">
-                                    <div class="aspect-[16/10] bg-[#F3EAD8] border border-[#E3D9C9] overflow-hidden flex items-center justify-center">
-                                        @if($article->cover_image)
-                                            <img src="{{ $article->cover_image }}" alt="{{ $article->title }}" loading="lazy" class="heritage-img-zoom w-full h-full object-cover">
-                                        @else
-                                            <svg class="heritage-img-zoom w-full h-full" viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg">
-                                                <rect width="480" height="300" fill="#F3EAD8"/>
-                                                <rect x="18" y="18" width="444" height="264" fill="none" stroke="#A67C52" stroke-width="1.5"/>
-                                                <text x="240" y="145" text-anchor="middle" fill="#6B3F1E" font-family="Georgia, serif" font-size="16" font-weight="bold">{{ strtoupper($article->category) }}</text>
-                                                <text x="240" y="175" text-anchor="middle" fill="#6E635A" font-family="sans-serif" font-size="12">PT Pabrik Gula Candi Baru</text>
-                                            </svg>
-                                        @endif
-                                    </div>
-                                </a>
+                            <div class="lg:col-span-4 heritage-3d-stage">
+                                <div class="heritage-stack-group">
+                                    <div class="heritage-stack-plate-2" aria-hidden="true"></div>
+                                    <div class="heritage-stack-plate-1" aria-hidden="true"></div>
+                                    <a href="{{ route('articles.show', $article->slug) }}" data-tilt-card data-tilt-max="5" class="group heritage-card-interactive relative z-10 block border border-[#E3D9C9] bg-[#FFFFFF] p-2 hover:border-[#6B3F1E]">
+                                        <div class="aspect-[16/10] bg-[#F3EAD8] border border-[#E3D9C9] overflow-hidden flex items-center justify-center">
+                                            @if($article->cover_image)
+                                                <img src="{{ $article->cover_image }}" alt="{{ $article->title }}" loading="lazy" class="heritage-img-zoom w-full h-full object-cover">
+                                            @else
+                                                <svg class="heritage-img-zoom w-full h-full" viewBox="0 0 480 300" xmlns="http://www.w3.org/2000/svg">
+                                                    <rect width="480" height="300" fill="#F3EAD8"/>
+                                                    <rect x="18" y="18" width="444" height="264" fill="none" stroke="#A67C52" stroke-width="1.5"/>
+                                                    <text x="240" y="145" text-anchor="middle" fill="#6B3F1E" font-family="Georgia, serif" font-size="16" font-weight="bold">{{ strtoupper($article->category) }}</text>
+                                                    <text x="240" y="175" text-anchor="middle" fill="#6E635A" font-family="sans-serif" font-size="12">PT Pabrik Gula Candi Baru</text>
+                                                </svg>
+                                            @endif
+                                        </div>
+                                    </a>
+                                </div>
                             </div>
 
                             <div class="lg:col-span-8 space-y-3">
