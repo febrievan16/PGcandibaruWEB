@@ -3,14 +3,8 @@
 @section('title', $event->title . ' — Pilih Jadwal & Pesan Tiket | GulaTour')
 
 @section('content')
-    <!-- Event Header & Uniform Pricing Table (DEC-001) -->
+    <!-- Event Header & Uniform Pricing Table -->
     <section class="relative overflow-hidden border-b border-[#E3D9C9] py-10 lg:py-14">
-        <div aria-hidden="true"
-             data-parallax-speed="-0.14"
-             class="heritage-watermark absolute top-4 right-6 text-[68px] sm:text-[124px]">
-            JADWAL &amp; KUOTA
-        </div>
-
         <div class="relative z-10 max-w-[1200px] mx-auto px-4 sm:px-6">
             <div data-reveal="down" class="mb-4">
                 <a href="{{ route('events.index') }}" class="link-heritage-tertiary text-xs uppercase tracking-wider">
@@ -52,10 +46,10 @@
                 </div>
 
                 <!-- Single-Row Uniform Pricing Table per DESIGN.md §6 & DEC-001 -->
-                <div data-reveal="right" data-reveal-delay="140" class="lg:col-span-5">
-                    <div data-tilt-card class="heritage-card-interactive border border-[#E3D9C9] bg-[#FFFFFF] p-6 space-y-4">
+                <div data-reveal="right" data-reveal-delay="140" class="lg:col-span-5 heritage-3d-stage">
+                    <div data-tilt-card data-tilt-max="4.5" class="heritage-card-interactive border border-[#E3D9C9] bg-[#FFFFFF] p-6 space-y-4">
                         <div class="flex items-center justify-between border-b border-[#E3D9C9] pb-3">
-                            <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold">Tabel Harga Resmi (DEC-001)</span>
+                            <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold">Informasi Tarif & Ketentuan Tiket</span>
                             <span class="text-xs text-[#6E635A]">Mata Uang: IDR</span>
                         </div>
 
@@ -174,7 +168,7 @@
                                     @endif
                                 </div>
 
-                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 heritage-3d-stage">
                                     @foreach($dateSchedules as $schedule)
                                         @php
                                             $isAvailable = $schedule->isAvailable();
@@ -182,7 +176,7 @@
                                             $remaining = $schedule->remainingQuota();
                                         @endphp
                                         <div data-schedule-card="{{ $schedule->id }}"
-                                             @if($isAvailable) data-tilt-card data-tilt-max="1.8" @endif
+                                             @if($isAvailable) data-tilt-card data-tilt-max="4" @endif
                                              class="{{ $isAvailable ? 'heritage-card-interactive' : '' }} border p-4 transition-colors {{ $isSelected ? 'session-card-selected' : 'border-[#E3D9C9] bg-[#FFFFFF]' }} {{ !$isAvailable ? 'opacity-55 bg-[#FAF6EE]' : '' }}">
                                             <div class="flex items-start justify-between gap-4">
                                                 <div>
@@ -235,15 +229,16 @@
             <!-- STEP 2: Form Data Diri & Jumlah Tiket (Strictly NOT rendered before Step 1 is valid per DEC-003) -->
             <div id="wizard-step-2" data-reveal="up" class="pt-6 border-t-2 border-[#E3D9C9]">
                 @if(!$selectedSchedule)
-                    <div class="heritage-card-interactive border border-[#E3D9C9] bg-[#FFFFFF] p-8 text-center space-y-2">
+                    <div class="border border-[#E3D9C9] bg-[#FFFFFF] p-8 text-center space-y-2">
+                        <span class="sr-only">Langkah 2 Terkunci (Aturan DEC-003)</span>
                         <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold block">
-                            Langkah 2 Terkunci (Aturan DEC-003)
+                            Tahap 2: Menunggu Pemilihan Sesi
                         </span>
                         <h3 class="font-serif text-2xl font-semibold text-[#2A211A]">
                             Pilih Tanggal dan Sesi Kunjungan Terlebih Dahulu
                         </h3>
                         <p class="text-sm text-[#6E635A] max-w-[54ch] mx-auto">
-                            Formulir data pemesan dan jumlah tiket hanya ditampilkan setelah Anda memilih salah satu jadwal sesi yang tersedia pada Langkah 1 di atas.
+                            Formulir data pemesan dan jumlah tiket akan terbuka otomatis begitu Anda mengklik salah satu jadwal sesi yang tersedia pada Langkah 1 di atas.
                         </p>
                     </div>
                 @else
@@ -252,7 +247,7 @@
                         <div data-reveal="left" class="lg:col-span-7 space-y-6">
                             <div>
                                 <span class="text-xs uppercase tracking-[0.08em] text-[#4A6B3A] font-semibold">
-                                    Langkah 2 Aktif &bull; Jadwal Terpilih
+                                    Langkah 2 &bull; Jadwal Terpilih
                                 </span>
                                 <h2 class="font-serif text-2xl font-semibold text-[#2A211A] mt-1">
                                     Lengkapi Data Pemesan & Jumlah Tiket
@@ -261,7 +256,7 @@
                                     @auth
                                         Anda memesan menggunakan akun terdaftar (<strong>{{ auth()->user()->email }}</strong>). Riwayat dan E-Ticket akan otomatis tersimpan di akun Anda.
                                     @else
-                                        Anda dapat langsung memesan sebagai <strong>Tamu (Guest Checkout)</strong> tanpa akun, atau <a href="{{ route('login') }}" class="link-heritage-tertiary">Masuk Akun</a> untuk menyimpan riwayat pemesanan (DEC-004).
+                                        Anda dapat langsung memesan sebagai <strong>Tamu (Guest Checkout)</strong> tanpa akun, atau <a href="{{ route('login') }}" class="link-heritage-tertiary">Masuk Akun</a> untuk menyimpan riwayat pemesanan secara otomatis.
                                     @endauth
                                 </p>
                             </div>
@@ -353,17 +348,22 @@
                             </form>
                         </div>
 
-                        <!-- Order Summary Box (Allowed Card Container per DESIGN.md §8) -->
-                        <div data-reveal="right" data-reveal-delay="120" class="lg:col-span-5">
-                            <div data-tilt-card class="heritage-card-interactive border border-[#E3D9C9] bg-[#FFFFFF] p-6 space-y-4">
-                                <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold block">
-                                    Ringkasan Jadwal & Biaya
-                                </span>
-                                <h3 class="font-serif text-xl font-bold text-[#2A211A]">
+                        <!-- 3D Perforated Boarding Pass Order Summary Box -->
+                        <div data-reveal="right" data-reveal-delay="120" class="lg:col-span-5 heritage-3d-stage">
+                            <div data-tilt-card data-tilt-max="5" class="heritage-card-interactive ticket-3d-perforated p-6 space-y-4">
+                                <div class="depth-z-mid flex items-center justify-between gap-2">
+                                    <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold block">
+                                        Ringkasan Jadwal & Biaya
+                                    </span>
+                                    <span class="px-2 py-0.5 text-[10px] uppercase tracking-wider font-semibold bg-[#F3EAD8] text-[#6B3F1E] border border-[#C8A24A]">
+                                        Boarding Pass 1911
+                                    </span>
+                                </div>
+                                <h3 class="depth-z-front font-serif text-xl font-bold text-[#2A211A]">
                                     {{ $event->title }}
                                 </h3>
 
-                                <dl class="divide-y divide-[#E3D9C9] border-t border-b border-[#E3D9C9] text-sm">
+                                <dl class="divide-y divide-[#E3D9C9] border-t border-b border-dashed border-[#C8A24A] text-sm">
                                     <div class="py-3 flex justify-between gap-4">
                                         <dt class="text-[#6E635A]">Tanggal Kunjungan</dt>
                                         <dd class="font-semibold text-[#2A211A] tabular-nums">{{ $selectedSchedule->tour_date->translatedFormat('d M Y') }}</dd>
@@ -386,7 +386,7 @@
                                     </div>
                                 </dl>
 
-                                <div class="flex items-baseline justify-between pt-1">
+                                <div class="depth-z-front flex items-baseline justify-between pt-1">
                                     <span class="text-sm font-semibold text-[#2A211A]">Total Pembayaran</span>
                                     <span id="summary-total-display" class="font-serif text-2xl font-bold text-[#6B3F1E] tabular-nums">
                                         Rp {{ number_format($event->ticket_price * (int) old('ticket_qty', 1), 0, ',', '.') }}
@@ -394,7 +394,7 @@
                                 </div>
 
                                 <p class="text-xs text-[#6E635A]">
-                                    Total dihitung ulang secara otomatis di server (`ticket_price × qty`). Kuota dikunci saat pesanan dibuat.
+                                    Total biaya dihitung otomatis berdasarkan jumlah peserta dan kuota sesi dikunci saat pesanan dibuat.
                                 </p>
                             </div>
                         </div>

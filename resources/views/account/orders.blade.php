@@ -4,16 +4,10 @@
 
 @section('content')
     <section class="relative overflow-hidden py-12">
-        <div aria-hidden="true"
-             data-parallax-speed="-0.12"
-             class="heritage-watermark absolute top-6 right-6 text-[68px] sm:text-[124px]">
-            RIWAYAT TIKET
-        </div>
-
         <div class="relative z-10 max-w-[1200px] mx-auto px-4 sm:px-6 space-y-8">
             <div data-reveal="up" class="border-b border-[#E3D9C9] pb-5 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                 <div>
-                    <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold">Modul M5 &bull; Akun Terdaftar (FR-10)</span>
+                    <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold">Portal Pengunjung &bull; Riwayat Tiket Resmi</span>
                     <h1 class="font-serif text-3xl sm:text-4xl font-bold text-[#2A211A] mt-1">Riwayat Pemesanan & E-Ticket</h1>
                     <p class="text-sm text-[#6E635A] mt-1">
                         Masuk sebagai <strong>{{ $user->name }}</strong> ({{ $user->email }})

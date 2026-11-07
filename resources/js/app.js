@@ -178,7 +178,7 @@
         window.addEventListener('resize', onScrollOrResize, { passive: true });
         updateScrollEffects();
 
-        // 5. Pointer Depth Parallax inside [data-parallax-scene]
+        // 5. Pointer Depth Parallax inside [data-parallax-scene] (60fps LERP Spring)
         if (!prefersReducedMotion) {
             document.querySelectorAll('[data-parallax-scene]').forEach(function (scene) {
                 const layers = Array.from(scene.querySelectorAll('[data-mouse-depth]'));
@@ -189,55 +189,137 @@
                 let sceneRaf = null;
                 let targetX = 0;
                 let targetY = 0;
+                let currentX = 0;
+                let currentY = 0;
+
+                function stepSceneSpring() {
+                    currentX += (targetX - currentX) * 0.14;
+                    currentY += (targetY - currentY) * 0.14;
+
+                    for (let k = 0; k < layers.length; k++) {
+                        const layer = layers[k];
+                        const depth = parseFloat(layer.getAttribute('data-mouse-depth') || '12');
+                        const dx = (currentX * depth).toFixed(2);
+                        const dy = (currentY * depth).toFixed(2);
+                        layer.style.transform = 'translate3d(' + dx + 'px, ' + dy + 'px, 0)';
+                    }
+
+                    if (Math.abs(targetX - currentX) > 0.008 || Math.abs(targetY - currentY) > 0.008) {
+                        sceneRaf = requestAnimationFrame(stepSceneSpring);
+                    } else {
+                        sceneRaf = null;
+                    }
+                }
 
                 scene.addEventListener('mousemove', function (e) {
                     const rect = scene.getBoundingClientRect();
                     const relX = ((e.clientX - rect.left) / Math.max(1, rect.width)) - 0.5;
                     const relY = ((e.clientY - rect.top) / Math.max(1, rect.height)) - 0.5;
-                    targetX = relX * 2; // -1 to +1
+                    targetX = relX * 2;
                     targetY = relY * 2;
 
                     if (!sceneRaf) {
-                        sceneRaf = requestAnimationFrame(function () {
-                            sceneRaf = null;
-                            for (let k = 0; k < layers.length; k++) {
-                                const layer = layers[k];
-                                const depth = parseFloat(layer.getAttribute('data-mouse-depth') || '12');
-                                const dx = (targetX * depth).toFixed(2);
-                                const dy = (targetY * depth).toFixed(2);
-                                layer.style.transform = 'translate3d(' + dx + 'px, ' + dy + 'px, 0)';
-                            }
-                        });
+                        sceneRaf = requestAnimationFrame(stepSceneSpring);
                     }
                 }, { passive: true });
 
                 scene.addEventListener('mouseleave', function () {
-                    for (let k = 0; k < layers.length; k++) {
-                        layers[k].style.transform = 'translate3d(0px, 0px, 0)';
+                    targetX = 0;
+                    targetY = 0;
+                    if (!sceneRaf) {
+                        sceneRaf = requestAnimationFrame(stepSceneSpring);
                     }
                 }, { passive: true });
             });
 
-            // 6. Tactile 3D Archival Plate & Card Tilt ([data-tilt-card])
+            // 6. Tactile 3D Archival Plate & Card Tilt ([data-tilt-card]) with Spring Physics & Specular Glare
             document.querySelectorAll('[data-tilt-card]').forEach(function (card) {
-                const maxDeg = parseFloat(card.getAttribute('data-tilt-max') || '2.8');
+                const maxDeg = parseFloat(card.getAttribute('data-tilt-max') || '5.5');
+
+                // Auto-inject specular brass glare overlay if not already present
+                let glareEl = card.querySelector('.heritage-3d-glare');
+                if (!glareEl) {
+                    glareEl = document.createElement('div');
+                    glareEl.className = 'heritage-3d-glare';
+                    glareEl.setAttribute('aria-hidden', 'true');
+                    card.appendChild(glareEl);
+                }
+
+                let targetRX = 0;
+                let targetRY = 0;
+                let currentRX = 0;
+                let currentRY = 0;
+                let cardRaf = null;
+
+                function stepCardSpring() {
+                    currentRX += (targetRX - currentRX) * 0.15;
+                    currentRY += (targetRY - currentRY) * 0.15;
+
+                    card.style.setProperty('--tilt-x', currentRX.toFixed(2) + 'deg');
+                    card.style.setProperty('--tilt-y', currentRY.toFixed(2) + 'deg');
+                    card.style.setProperty('--tilt-x-num', currentRX.toFixed(2));
+                    card.style.setProperty('--tilt-y-num', currentRY.toFixed(2));
+
+                    if (Math.abs(targetRX - currentRX) > 0.04 || Math.abs(targetRY - currentRY) > 0.04) {
+                        cardRaf = requestAnimationFrame(stepCardSpring);
+                    } else {
+                        cardRaf = null;
+                    }
+                }
 
                 card.addEventListener('mousemove', function (e) {
                     const rect = card.getBoundingClientRect();
-                    const px = ((e.clientX - rect.left) / Math.max(1, rect.width)) - 0.5;
-                    const py = ((e.clientY - rect.top) / Math.max(1, rect.height)) - 0.5;
-                    const rotateX = (-py * maxDeg * 2).toFixed(2) + 'deg';
-                    const rotateY = (px * maxDeg * 2).toFixed(2) + 'deg';
-                    card.style.setProperty('--tilt-x', rotateX);
-                    card.style.setProperty('--tilt-y', rotateY);
+                    const px = (e.clientX - rect.left) / Math.max(1, rect.width);
+                    const py = (e.clientY - rect.top) / Math.max(1, rect.height);
+                    const isExploded = card.classList.contains('diorama-exploded');
+                    const baseRX = isExploded ? 11 : 0;
+                    const baseRY = isExploded ? -15 : 0;
+
+                    targetRX = baseRX + (0.5 - py) * maxDeg * 2;
+                    targetRY = baseRY + (px - 0.5) * maxDeg * 2;
+
+                    card.style.setProperty('--glare-x', (px * 100).toFixed(1) + '%');
+                    card.style.setProperty('--glare-y', (py * 100).toFixed(1) + '%');
+                    card.style.setProperty('--glare-alpha', '1');
+
+                    if (!cardRaf) {
+                        cardRaf = requestAnimationFrame(stepCardSpring);
+                    }
                 }, { passive: true });
 
                 card.addEventListener('mouseleave', function () {
-                    card.style.setProperty('--tilt-x', '0deg');
-                    card.style.setProperty('--tilt-y', '0deg');
+                    const isExploded = card.classList.contains('diorama-exploded');
+                    targetRX = isExploded ? 11 : 0;
+                    targetRY = isExploded ? -15 : 0;
+                    card.style.setProperty('--glare-alpha', '0');
+
+                    if (!cardRaf) {
+                        cardRaf = requestAnimationFrame(stepCardSpring);
+                    }
                 }, { passive: true });
             });
         }
+
+        // 7. Interactive 3D Diorama Exploded-Layer Toggle ([data-diorama-explode-toggle])
+        document.querySelectorAll('[data-diorama-explode-toggle]').forEach(function (btn) {
+            btn.addEventListener('click', function () {
+                const targetId = btn.getAttribute('data-diorama-explode-toggle');
+                const stageCard = document.getElementById(targetId);
+                if (!stageCard) {
+                    return;
+                }
+
+                const isNowExploded = stageCard.classList.toggle('diorama-exploded');
+                btn.setAttribute('aria-pressed', isNowExploded ? 'true' : 'false');
+
+                const labelSpan = btn.querySelector('[data-explode-label]');
+                if (labelSpan) {
+                    labelSpan.textContent = isNowExploded
+                        ? 'Tutup Bedah 3D (Mode Normal)'
+                        : 'Mode Bedah 3D (Exploded View)';
+                }
+            });
+        });
     }
 
     if (document.readyState === 'loading') {

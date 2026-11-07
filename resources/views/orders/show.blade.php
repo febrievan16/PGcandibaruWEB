@@ -4,18 +4,12 @@
 
 @section('content')
     <section class="relative overflow-hidden py-12">
-        <div aria-hidden="true"
-             data-parallax-speed="-0.12"
-             class="heritage-watermark absolute top-6 right-6 text-[68px] sm:text-[124px]">
-            TIKET RESMI
-        </div>
-
         <div class="relative z-10 max-w-[1200px] mx-auto px-4 sm:px-6 space-y-8">
             <!-- Header & Explicit Status Label + Color (DESIGN.md §4 & §12) -->
             <div data-reveal="up" class="border-b border-[#E3D9C9] pb-6 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                     <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold">
-                        Modul M4 &bull; Rincian Pemesanan & Pembayaran
+                        Layanan Tiket Resmi &bull; Rincian Pemesanan
                     </span>
                     <h1 class="font-serif text-3xl sm:text-4xl font-bold text-[#2A211A] mt-1 tabular-nums">
                         Order #{{ $order->order_code }}
@@ -37,7 +31,7 @@
                             <div class="border-b border-[#E3D9C9] pb-4 flex flex-wrap items-center justify-between gap-2">
                                 <div>
                                     <span class="text-xs uppercase tracking-wider text-[#B8860B] font-semibold block">
-                                        Menunggu Pembayaran Online (DEC-002)
+                                        Menunggu Pembayaran Online
                                     </span>
                                     <h2 class="font-serif text-2xl font-bold text-[#2A211A]">
                                         Selesaikan Pembayaran via Midtrans
@@ -161,11 +155,11 @@
                                 Tunjukkan kode QR di bawah ini kepada petugas di <strong>{{ $order->schedule->event->meeting_point ?? 'Gerbang Utama PG Candi Baru' }}</strong> untuk pemindaian check-in. Tautan E-Ticket juga telah dikirimkan ke <strong>{{ $order->buyer_email }}</strong> dan WhatsApp <strong>{{ $order->buyer_phone }}</strong>.
                             </p>
 
-                            <div data-reveal-stagger="110" class="space-y-4">
+                            <div data-reveal-stagger="110" class="space-y-4 heritage-3d-stage">
                                 @foreach($order->tickets as $idx => $ticket)
-                                    <div data-reveal="up" data-tilt-card data-tilt-max="1.8" class="heritage-card-interactive border border-[#E3D9C9] bg-[#FAF6EE] p-4 flex flex-col sm:flex-row items-center justify-between gap-6">
+                                    <div data-reveal="up" data-tilt-card data-tilt-max="4.5" class="heritage-card-interactive ticket-3d-perforated p-5 flex flex-col sm:flex-row items-center justify-between gap-6">
                                         <div class="space-y-2 flex-1">
-                                            <div class="flex items-center gap-2 text-xs">
+                                            <div class="depth-z-mid flex items-center gap-2 text-xs">
                                                 <span class="font-semibold uppercase tracking-wider text-[#6B3F1E]">
                                                     Tiket Peserta #{{ $idx + 1 }}
                                                 </span>
@@ -174,7 +168,7 @@
                                                     {{ $ticket->statusLabel() }}
                                                 </span>
                                             </div>
-                                            <p class="font-serif text-xl font-bold text-[#2A211A] tabular-nums">
+                                            <p class="depth-z-front font-serif text-xl font-bold text-[#2A211A] tabular-nums">
                                                 {{ $ticket->ticket_code }}
                                             </p>
                                             <p class="text-xs text-[#6E635A] tabular-nums">
@@ -182,13 +176,13 @@
                                                 Jadwal: {{ $order->schedule->tour_date->translatedFormat('d M Y') }} &bull; Sesi {{ $order->schedule->session_code }} ({{ $order->schedule->formattedTimeRange() }} WIB)
                                             </p>
                                             <div class="pt-1">
-                                                <code class="text-[11px] bg-[#FFFFFF] border border-[#E3D9C9] px-2 py-0.5 text-[#6E635A] select-all block sm:inline-block">
+                                                <code class="text-[11px] bg-[#FAF6EE] border border-[#E3D9C9] px-2 py-0.5 text-[#6E635A] select-all block sm:inline-block">
                                                     {{ $ticket->qr_payload }}
                                                 </code>
                                             </div>
                                         </div>
 
-                                        <div class="shrink-0 bg-[#FFFFFF] p-2 border border-[#E3D9C9]">
+                                        <div class="depth-z-front shrink-0 bg-[#FFFFFF] p-2.5 border border-[#C8A24A] shadow-sm">
                                             {!! $ticketService->renderSvgQr($ticket->qr_payload, 136) !!}
                                         </div>
                                     </div>
@@ -218,8 +212,8 @@
                 </div>
 
                 <!-- Right 5/12: Order Metadata Summary -->
-                <div data-reveal="right" data-reveal-delay="140" class="lg:col-span-5">
-                    <div data-tilt-card data-tilt-max="2.0" class="heritage-card-interactive border border-[#E3D9C9] bg-[#FFFFFF] p-6 space-y-4">
+                <div data-reveal="right" data-reveal-delay="140" class="lg:col-span-5 heritage-3d-stage">
+                    <div data-tilt-card data-tilt-max="4" class="heritage-card-interactive border border-[#E3D9C9] bg-[#FFFFFF] p-6 space-y-4">
                         <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold block">
                             Rincian Pesanan Resmi
                         </span>

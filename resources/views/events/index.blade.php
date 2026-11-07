@@ -4,20 +4,14 @@
 
 @section('content')
     <section class="relative overflow-hidden border-b border-[#E3D9C9] py-12">
-        <div aria-hidden="true"
-             data-parallax-speed="-0.14"
-             class="heritage-watermark absolute top-3 right-6 text-[68px] sm:text-[124px]">
-            KATALOG SESI
-        </div>
-
         <div class="relative z-10 max-w-[1200px] mx-auto px-4 sm:px-6">
             <div class="flex flex-col md:flex-row md:items-end justify-between gap-4">
                 <div data-reveal="left">
-                    <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold">Modul M2 &bull; Katalog Event Aktif</span>
+                    <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold">Jadwal Tur Resmi &bull; Edukasi Pabrik Gula</span>
                     <h1 class="font-serif text-4xl font-bold text-[#2A211A] mt-1">Daftar Event Tour & Jadwal Sesi</h1>
                 </div>
                 <p data-reveal="right" class="text-sm text-[#6E635A] max-w-[48ch]">
-                    Sesuai kebijakan tarif tetap (DEC-001), harga tiket berlaku seragam per peserta. Pilih event untuk melihat jadwal sesi dan sisa kuota secara langsung.
+                    Harga tiket berlaku seragam per peserta. Pilih event di bawah ini untuk melihat jadwal sesi dan sisa kuota secara langsung.
                 </p>
             </div>
         </div>
@@ -44,18 +38,22 @@
                             $totalRemaining = $availableSchedules->sum(fn($s) => $s->remainingQuota());
                         @endphp
                         <article data-reveal="up" class="py-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                            <div class="lg:col-span-3">
-                                <div data-tilt-card class="heritage-card-interactive aspect-[4/3] bg-[#F3EAD8] border border-[#E3D9C9] p-4 flex flex-col justify-between">
-                                    <div class="flex items-center justify-between text-xs text-[#6B3F1E] font-semibold uppercase">
-                                        <span>Tur Heritage</span>
-                                        <span class="tabular-nums"><span data-count-up="{{ $event->duration_minutes }}">{{ $event->duration_minutes }}</span> Menit</span>
+                            <div class="lg:col-span-3 heritage-3d-stage">
+                                <div class="heritage-stack-group">
+                                    <div class="heritage-stack-plate-2" aria-hidden="true"></div>
+                                    <div class="heritage-stack-plate-1" aria-hidden="true"></div>
+                                    <div data-tilt-card data-tilt-max="6" class="heritage-card-interactive relative z-10 aspect-[4/3] bg-[#F3EAD8] border border-[#E3D9C9] p-4 flex flex-col justify-between">
+                                        <div class="depth-z-mid flex items-center justify-between text-xs text-[#6B3F1E] font-semibold uppercase">
+                                            <span>Tur Heritage</span>
+                                            <span class="tabular-nums"><span data-count-up="{{ $event->duration_minutes }}">{{ $event->duration_minutes }}</span> Menit</span>
+                                        </div>
+                                        <p class="depth-z-front font-serif text-lg font-bold text-[#2A211A] leading-snug">
+                                            {{ $event->title }}
+                                        </p>
+                                        <span class="depth-z-mid text-xs text-[#6E635A] border-t border-[#E3D9C9] pt-2">
+                                            {{ $event->meeting_point }}
+                                        </span>
                                     </div>
-                                    <p class="font-serif text-lg font-bold text-[#2A211A] leading-snug">
-                                        {{ $event->title }}
-                                    </p>
-                                    <span class="text-xs text-[#6E635A] border-t border-[#E3D9C9] pt-2">
-                                        {{ $event->meeting_point }}
-                                    </span>
                                 </div>
                             </div>
 
@@ -92,10 +90,10 @@
                                 @endif
                             </div>
 
-                            <div class="lg:col-span-3 lg:border-l lg:border-[#E3D9C9] lg:pl-6 flex flex-col justify-between space-y-4">
-                                <div data-tilt-card class="heritage-card-interactive bg-[#FFFFFF] border border-[#E3D9C9] p-4">
-                                    <span class="text-xs uppercase tracking-wider text-[#6E635A] block">Harga Tiket Tetap (DEC-001)</span>
-                                    <span class="font-serif text-2xl font-bold text-[#6B3F1E] tabular-nums block mt-1">
+                            <div class="lg:col-span-3 lg:border-l lg:border-[#E3D9C9] lg:pl-6 flex flex-col justify-between space-y-4 heritage-3d-stage">
+                                <div data-tilt-card data-tilt-max="4.5" class="heritage-card-interactive bg-[#FFFFFF] border border-[#E3D9C9] p-4">
+                                    <span class="text-xs uppercase tracking-wider text-[#6E635A] block">Harga Tiket Tetap</span>
+                                    <span class="depth-z-front font-serif text-2xl font-bold text-[#6B3F1E] tabular-nums block mt-1">
                                         {{ $event->formattedPrice() }}
                                     </span>
                                     <span class="text-xs text-[#6E635A] block mt-1">Tarif seragam per orang</span>
