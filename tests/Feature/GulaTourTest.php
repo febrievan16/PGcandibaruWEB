@@ -65,16 +65,16 @@ class GulaTourTest extends TestCase
         $activeEvent = Event::where('slug', 'tour-pabrik-candi-baru')->firstOrFail();
         $this->assertTrue($activeEvent->hasAvailableSchedules());
 
-        // Temporarily mark all schedules of active event as booked/sold out
-        $activeEvent->schedules()->update(['quota_booked' => 30]);
+        // Temporarily mark all schedules as booked/sold out
+        Schedule::query()->update(['quota_booked' => 100]);
         $this->get('/')->assertDontSee($activeEvent->title);
         $this->get('/events')->assertDontSee('Pilih Jadwal & Pesan');
         $this->get('/events')->assertSee('Belum ada event tour aktif.');
 
-        // Restore schedule quota
-        $firstSchedule = $activeEvent->schedules()->first();
-        $firstSchedule->update(['quota_booked' => 0]);
-        $this->get('/events')->assertSee('Pilih Jadwal & Pesan');
+        // Restore schedule quota on an upcoming schedule
+        $upcomingSchedule = $activeEvent->schedules()->whereDate('tour_date', '>=', today())->first();
+        $upcomingSchedule->update(['quota_booked' => 0]);
+        $this->get('/events')->assertSee('Pilih Jadwal & Pesan', false);
         $this->get('/')->assertSee($activeEvent->title);
     }
 

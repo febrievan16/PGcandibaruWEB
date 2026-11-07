@@ -56,9 +56,12 @@ class PublicController extends Controller
             ->limit(6)
             ->get();
 
+        $popularEvent = $events->sortByDesc(fn (Event $event): int => (int) $event->schedules->sum('quota_booked'))->first();
+
         return view('pages.home', [
             'profile' => $profile,
             'events' => $events,
+            'popularEvent' => $popularEvent,
             'articles' => $articles,
         ]);
     }

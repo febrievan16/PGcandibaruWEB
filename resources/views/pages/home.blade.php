@@ -4,8 +4,8 @@
 
 @section('content')
     @php
-        $sliderArticles = $articles ?? collect();
-        $totalSlides = 1 + $sliderArticles->count();
+        $sliderArticles = ($articles ?? collect())->take(2);
+        $totalSlides = 1 + $sliderArticles->count() + (!empty($popularEvent) ? 1 : 0);
     @endphp
 
     <!-- Interactive Heritage Jumbotron Slider with Multi-Layer Parallax (7/12 Archival Visual + 5/12 Narrative) -->
@@ -287,6 +287,106 @@
                         </div>
                     @endforeach
 
+                    <!-- ========================================================================= -->
+                    <!-- SLIDE 4: EVENT PALING LARIS & POPULER DENGAN KUOTA TERSEDIA               -->
+                    <!-- ========================================================================= -->
+                    @if(!empty($popularEvent))
+                        @php
+                            $popularSlideIndex = 1 + $sliderArticles->count();
+                            $popularOpenSchedules = $popularEvent->schedules->filter(fn($s) => $s->isAvailable());
+                            $popularTotalRemaining = $popularOpenSchedules->sum(fn($s) => $s->remainingQuota());
+                            $popularTotalBooked = (int) $popularEvent->schedules->sum('quota_booked');
+                        @endphp
+                        <div class="w-full shrink-0"
+                             data-jumbotron-slide="{{ $popularSlideIndex }}"
+                             data-slide-label="Event Terpopuler &bull; Paling Banyak Diminati Pengunjung">
+                            <div class="grid grid-cols-1 lg:grid-cols-12 gap-8 lg:gap-12 items-center">
+                                <!-- 7/12 Popular Event Visual Plate -->
+                                <div class="lg:col-span-7 order-1 lg:order-1 heritage-3d-stage">
+                                    <figure data-tilt-card data-tilt-max="5" class="group heritage-card-interactive border border-[#E3D9C9] bg-[#FFFFFF] p-3 sm:p-4">
+                                        <div class="aspect-[16/10] bg-[#F3EAD8] border border-[#E3D9C9] relative overflow-hidden flex items-center justify-center">
+                                            @if($popularEvent->cover_image)
+                                                <img src="{{ $popularEvent->cover_image }}"
+                                                     alt="{{ $popularEvent->title }}"
+                                                     loading="lazy"
+                                                     class="heritage-img-zoom w-full h-full object-cover">
+                                            @else
+                                                <svg class="w-full h-full object-cover" viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="{{ $popularEvent->title }}">
+                                                    <rect width="800" height="500" fill="#F3EAD8"></rect>
+                                                    <g stroke="#E3D9C9" stroke-width="1">
+                                                        <line x1="0" y1="100" x2="800" y2="100"></line>
+                                                        <line x1="0" y1="400" x2="800" y2="400"></line>
+                                                        <line x1="120" y1="0" x2="120" y2="500"></line>
+                                                        <line x1="680" y1="0" x2="680" y2="500"></line>
+                                                    </g>
+                                                    <rect x="60" y="55" width="680" height="390" fill="#FAF6EE" stroke="#6B3F1E" stroke-width="3"></rect>
+                                                    <rect x="78" y="73" width="644" height="354" fill="none" stroke="#C8A24A" stroke-width="1.5"></rect>
+                                                    <text x="400" y="150" text-anchor="middle" fill="#A67C52" font-family="sans-serif" font-size="14" font-weight="bold" letter-spacing="3">PROGRAM TOUR UNGGULAN &amp; PILIHAN WISATAWAN</text>
+                                                    <text x="400" y="225" text-anchor="middle" fill="#6B3F1E" font-family="Georgia, serif" font-size="28" font-weight="bold">{{ strtoupper($popularEvent->title) }}</text>
+                                                    <line x1="240" y1="255" x2="560" y2="255" stroke="#6B3F1E" stroke-width="2"></line>
+                                                    <text x="400" y="300" text-anchor="middle" fill="#2A211A" font-family="Georgia, serif" font-size="18">Kunjungan Edukasi Industri Gula — Sejak 1911</text>
+                                                    <text x="400" y="355" text-anchor="middle" fill="#6E635A" font-family="sans-serif" font-size="13">Tarif Resmi {{ $popularEvent->formattedPrice() }} &bull; Durasi {{ $popularEvent->duration_minutes }} Menit</text>
+                                                </svg>
+                                            @endif
+
+                                            <!-- Floating Badge Paling Laris -->
+                                            <div class="absolute top-3 left-3 bg-[#2A211A] text-[#FAF6EE] border border-[#C8A24A] px-3 py-1.5 shadow-md pointer-events-none z-10 flex items-center gap-2">
+                                                <span class="inline-block w-2 h-2 rounded-full bg-[#C8A24A] animate-pulse"></span>
+                                                <span class="text-[11px] uppercase tracking-wider font-semibold text-[#FAF6EE]">Paling Laris &bull; Terpopuler</span>
+                                            </div>
+
+                                            <div class="absolute bottom-3 right-3 bg-[#FAF6EE]/90 backdrop-blur-xs border border-[#E3D9C9] px-3 py-1 text-xs text-[#2A211A] font-semibold tabular-nums pointer-events-none z-10">
+                                                {{ $popularTotalRemaining }} Kuota Tiket Tersedia
+                                            </div>
+                                        </div>
+                                        <figcaption class="pt-3 flex flex-wrap items-center justify-between text-xs text-[#6E635A] gap-2">
+                                            <span>Titik Kumpul: <strong class="text-[#2A211A]">{{ $popularEvent->meeting_point }}</strong></span>
+                                            <span class="uppercase tracking-wider text-[#6B3F1E] font-semibold tabular-nums">{{ $popularTotalBooked }} Tiket Telah Dipesan</span>
+                                        </figcaption>
+                                    </figure>
+                                </div>
+
+                                <!-- 5/12 Popular Event Narrative & Booking CTA -->
+                                <div class="lg:col-span-5 order-2 lg:order-2 space-y-5">
+                                    <div class="inline-flex items-center gap-2 border-b border-[#6B3F1E] pb-1">
+                                        <span class="w-2 h-2 bg-[#C8A24A]"></span>
+                                        <span class="text-xs uppercase tracking-[0.08em] font-semibold text-[#6B3F1E]">
+                                            Event Paling Ramai &bull; Rekomendasi Pengunjung
+                                        </span>
+                                    </div>
+
+                                    <h2 class="font-serif text-3xl sm:text-4xl font-bold text-[#2A211A] leading-[1.15] tracking-tight">
+                                        {{ $popularEvent->title }}
+                                    </h2>
+
+                                    <p class="text-base text-[#6E635A] leading-relaxed">
+                                        {{ \Illuminate\Support\Str::limit($popularEvent->description, 180) }}
+                                    </p>
+
+                                    <div class="pt-2 flex flex-wrap items-center gap-4">
+                                        <a href="{{ route('events.show', $popularEvent->slug) }}" class="btn-heritage-primary">
+                                            Pesan Tiket Sekarang &rarr;
+                                        </a>
+                                        <a href="#jadwal-event" class="btn-heritage-secondary">
+                                            Lihat Seluruh Jadwal
+                                        </a>
+                                    </div>
+
+                                    <dl class="pt-5 border-t border-[#E3D9C9] grid grid-cols-2 gap-4 text-sm">
+                                        <div>
+                                            <dt class="text-xs uppercase tracking-wider text-[#6E635A]">Tarif Tiket</dt>
+                                            <dd class="font-serif text-lg font-bold text-[#6B3F1E] mt-0.5 tabular-nums">{{ $popularEvent->formattedPrice() }}</dd>
+                                        </div>
+                                        <div>
+                                            <dt class="text-xs uppercase tracking-wider text-[#6E635A]">Estimasi Durasi</dt>
+                                            <dd class="font-semibold text-[#2A211A] mt-0.5 tabular-nums">{{ $popularEvent->duration_minutes }} Menit</dd>
+                                        </div>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    @endif
+
                 </div>
             </div>
         </div>
@@ -463,7 +563,6 @@
                 const track = document.getElementById('heritage-jumbotron-track');
                 const viewport = document.getElementById('heritage-jumbotron-viewport');
                 const slides = document.querySelectorAll('[data-jumbotron-slide]');
-                const dots = document.querySelectorAll('[data-jumbotron-dot]');
                 const prevBtn = document.getElementById('jumbotron-prev-btn');
                 const nextBtn = document.getElementById('jumbotron-next-btn');
                 const counterEl = document.getElementById('jumbotron-counter');
@@ -476,6 +575,26 @@
                 let currentSlide = 0;
                 const total = slides.length;
                 let dragStartX = null;
+                let autoSlideTimer = null;
+                const AUTO_SLIDE_INTERVAL = 6000;
+                let isHovered = false;
+
+                function startAutoSlide() {
+                    stopAutoSlide();
+                    if (total <= 1 || isHovered) {
+                        return;
+                    }
+                    autoSlideTimer = setInterval(function () {
+                        goToSlide(currentSlide + 1);
+                    }, AUTO_SLIDE_INTERVAL);
+                }
+
+                function stopAutoSlide() {
+                    if (autoSlideTimer) {
+                        clearInterval(autoSlideTimer);
+                        autoSlideTimer = null;
+                    }
+                }
 
                 function goToSlide(index) {
                     currentSlide = (index + total) % total;
@@ -491,53 +610,51 @@
                     if (badgeEl && activeSlideEl) {
                         badgeEl.innerHTML = activeSlideEl.getAttribute('data-slide-label') || '';
                     }
-
-                    dots.forEach(function (dot, idx) {
-                        if (idx === currentSlide) {
-                            dot.classList.add('border-[#6B3F1E]', 'bg-[#6B3F1E]', 'text-[#FAF6EE]', 'font-semibold');
-                            dot.classList.remove('border-[#E3D9C9]', 'bg-[#FFFFFF]', 'text-[#2A211A]');
-                        } else {
-                            dot.classList.remove('border-[#6B3F1E]', 'bg-[#6B3F1E]', 'text-[#FAF6EE]', 'font-semibold');
-                            dot.classList.add('border-[#E3D9C9]', 'bg-[#FFFFFF]', 'text-[#2A211A]');
-                        }
-                    });
                 }
 
                 if (prevBtn) {
                     prevBtn.addEventListener('click', function () {
                         goToSlide(currentSlide - 1);
+                        startAutoSlide();
                     });
                 }
 
                 if (nextBtn) {
                     nextBtn.addEventListener('click', function () {
                         goToSlide(currentSlide + 1);
+                        startAutoSlide();
                     });
                 }
 
-                dots.forEach(function (dot) {
-                    dot.addEventListener('click', function () {
-                        const idx = parseInt(dot.getAttribute('data-jumbotron-dot') || '0', 10);
-                        goToSlide(idx);
-                    });
-                });
-
                 if (viewport) {
+                    viewport.addEventListener('mouseenter', function () {
+                        isHovered = true;
+                        stopAutoSlide();
+                    });
+
+                    viewport.addEventListener('mouseleave', function () {
+                        isHovered = false;
+                        startAutoSlide();
+                    });
+
                     viewport.addEventListener('touchstart', function (e) {
+                        isHovered = true;
+                        stopAutoSlide();
                         if (e.touches && e.touches.length === 1) {
                             dragStartX = e.touches[0].clientX;
                         }
                     }, { passive: true });
 
                     viewport.addEventListener('touchend', function (e) {
-                        if (dragStartX === null || !e.changedTouches || !e.changedTouches.length) {
-                            return;
-                        }
-                        const deltaX = e.changedTouches[0].clientX - dragStartX;
-                        if (Math.abs(deltaX) > 45) {
-                            goToSlide(deltaX < 0 ? currentSlide + 1 : currentSlide - 1);
+                        isHovered = false;
+                        if (dragStartX !== null && e.changedTouches && e.changedTouches.length) {
+                            const deltaX = e.changedTouches[0].clientX - dragStartX;
+                            if (Math.abs(deltaX) > 45) {
+                                goToSlide(deltaX < 0 ? currentSlide + 1 : currentSlide - 1);
+                            }
                         }
                         dragStartX = null;
+                        startAutoSlide();
                     }, { passive: true });
 
                     viewport.addEventListener('mousedown', function (e) {
@@ -553,8 +670,21 @@
                             goToSlide(deltaX < 0 ? currentSlide + 1 : currentSlide - 1);
                         }
                         dragStartX = null;
+                        startAutoSlide();
                     });
                 }
+
+                // Pause auto-slide when page/tab is not active to optimize CPU/battery
+                document.addEventListener('visibilitychange', function () {
+                    if (document.hidden) {
+                        stopAutoSlide();
+                    } else {
+                        startAutoSlide();
+                    }
+                });
+
+                // Start auto slide on page load
+                startAutoSlide();
             });
         </script>
     @endpush
