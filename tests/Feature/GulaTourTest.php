@@ -60,6 +60,22 @@ class GulaTourTest extends TestCase
             ->assertJsonPath('data.slug', 'tour-pabrik-candi-baru')
             ->assertJsonPath('data.ticket_price', 75000)
             ->assertJsonPath('data.currency', 'IDR');
+
+        // Verify sold-out event is hidden from public catalog and reappears when new schedule added
+        $activeEvent = Event::where('slug', 'tour-pabrik-candi-baru')->firstOrFail();
+        $this->assertTrue($activeEvent->hasAvailableSchedules());
+
+        // Temporarily mark all schedules of active event as booked/sold out
+        $activeEvent->schedules()->update(['quota_booked' => 30]);
+        $this->get('/')->assertDontSee($activeEvent->title);
+        $this->get('/events')->assertDontSee('Pilih Jadwal & Pesan');
+        $this->get('/events')->assertSee('Belum ada event tour aktif.');
+
+        // Restore schedule quota
+        $firstSchedule = $activeEvent->schedules()->first();
+        $firstSchedule->update(['quota_booked' => 0]);
+        $this->get('/events')->assertSee('Pilih Jadwal & Pesan');
+        $this->get('/')->assertSee($activeEvent->title);
     }
 
     /**

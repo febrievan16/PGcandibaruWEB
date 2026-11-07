@@ -46,8 +46,8 @@
                 </div>
 
                 <!-- Single-Row Uniform Pricing Table per DESIGN.md §6 & DEC-001 -->
-                <div data-reveal="right" data-reveal-delay="140" class="lg:col-span-5 heritage-3d-stage">
-                    <div data-tilt-card data-tilt-max="4.5" class="heritage-card-interactive border border-[#E3D9C9] bg-[#FFFFFF] p-6 space-y-4">
+                <div data-reveal="right" data-reveal-delay="140" class="lg:col-span-5">
+                    <div class="border border-[#E3D9C9] bg-[#FFFFFF] p-6 space-y-4">
                         <div class="flex items-center justify-between border-b border-[#E3D9C9] pb-3">
                             <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold">Informasi Tarif & Ketentuan Tiket</span>
                             <span class="text-xs text-[#6E635A]">Mata Uang: IDR</span>

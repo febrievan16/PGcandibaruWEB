@@ -22,7 +22,7 @@
                             data-diorama-explode-toggle="hero-3d-diorama-plate"
                             aria-pressed="false"
                             class="px-2.5 py-1 text-xs font-semibold border border-[#C8A24A] bg-[#F3EAD8] text-[#6B3F1E] hover:bg-[#6B3F1E] hover:text-[#FAF6EE] transition-all cursor-pointer">
-                        <span data-explode-label>Mode Bedah 3D (Exploded View)</span>
+                        <span data-explode-label>Mode 3D Layer (Bedah Mesin)</span>
                     </button>
                 </div>
 
@@ -152,7 +152,7 @@
                                         </div>
 
                                         <!-- Plane 4: Floating Brass Year Badge (Z = +52px) -->
-                                        <div data-diorama-plane="plaque" class="depth-z-badge absolute top-3 right-3 bg-[#2A211A] text-[#FAF6EE] border border-[#C8A24A] px-3 py-1.5 shadow-md pointer-events-none">
+                                        <div data-diorama-plane="plaque" class="depth-z-badge absolute top-3 right-3 bg-[#2A211A] text-[#FAF6EE] border border-[#C8A24A] px-3 py-1.5 shadow-md pointer-events-none z-20">
                                             <span class="block text-[10px] uppercase tracking-[0.14em] text-[#C8A24A] font-semibold">Cagar Industri Aktif</span>
                                             <span class="font-serif text-sm font-bold tracking-wide">EST. {{ $profile?->established_year ?? 1911 }} &bull; SIDOARJO</span>
                                         </div>
@@ -289,29 +289,6 @@
 
                 </div>
             </div>
-
-            <!-- Bottom Jumbotron Slide Dots / Quick Jump Pills -->
-            @if($totalSlides > 1)
-                <div class="pt-6 mt-6 border-t border-[#E3D9C9] flex flex-wrap items-center justify-between gap-4">
-                    <div class="flex flex-wrap items-center gap-2" role="tablist" aria-label="Pilih Slide Jumbotron">
-                        <button type="button"
-                                data-jumbotron-dot="0"
-                                class="px-3 py-1.5 text-xs font-semibold border border-[#6B3F1E] bg-[#6B3F1E] text-[#FAF6EE] transition-colors cursor-pointer">
-                            1. Kunjungan Edukasi &amp; Sejarah
-                        </button>
-                        @foreach($sliderArticles as $idx => $article)
-                            <button type="button"
-                                    data-jumbotron-dot="{{ $idx + 1 }}"
-                                    class="px-3 py-1.5 text-xs font-medium border border-[#E3D9C9] bg-[#FFFFFF] text-[#2A211A] hover:border-[#6B3F1E] transition-colors cursor-pointer max-w-[220px] truncate">
-                                {{ $idx + 2 }}. {{ $article->title }}
-                            </button>
-                        @endforeach
-                    </div>
-                    <span class="text-xs text-[#6E635A]">
-                        Geser ke kanan/kiri atau gunakan tombol panah untuk menelusuri ringkasan artikel
-                    </span>
-                </div>
-            @endif
         </div>
     </section>
 

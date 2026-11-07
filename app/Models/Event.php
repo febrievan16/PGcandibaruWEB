@@ -66,6 +66,22 @@ class Event extends Model
     }
 
     /**
+     * Determine whether the event has at least one open and bookable schedule with remaining quota.
+     */
+    public function hasAvailableSchedules(): bool
+    {
+        if ($this->relationLoaded('schedules')) {
+            return $this->schedules->contains(fn (Schedule $schedule): bool => $schedule->isAvailable());
+        }
+
+        return $this->schedules()
+            ->where('status', 'open')
+            ->whereDate('tour_date', '>=', today()->toDateString())
+            ->whereColumn('quota_booked', '<', 'quota_total')
+            ->exists();
+    }
+
+    /**
      * Format ticket price in Rupiah.
      */
     public function formattedPrice(): string
