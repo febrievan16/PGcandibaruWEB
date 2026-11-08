@@ -38,22 +38,18 @@
                             $totalRemaining = $availableSchedules->sum(fn($s) => $s->remainingQuota());
                         @endphp
                         <article data-reveal="up" class="py-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                            <div class="lg:col-span-3 heritage-3d-stage">
-                                <div class="heritage-stack-group">
-                                    <div class="heritage-stack-plate-2" aria-hidden="true"></div>
-                                    <div class="heritage-stack-plate-1" aria-hidden="true"></div>
-                                    <div data-tilt-card data-tilt-max="6" class="heritage-card-interactive relative z-10 aspect-[4/3] bg-[#F3EAD8] border border-[#E3D9C9] p-4 flex flex-col justify-between">
-                                        <div class="depth-z-mid flex items-center justify-between text-xs text-[#6B3F1E] font-semibold uppercase">
-                                            <span>Tur Heritage</span>
-                                            <span class="tabular-nums"><span data-count-up="{{ $event->duration_minutes }}">{{ $event->duration_minutes }}</span> Menit</span>
-                                        </div>
-                                        <p class="depth-z-front font-serif text-lg font-bold text-[#2A211A] leading-snug">
-                                            {{ $event->title }}
-                                        </p>
-                                        <span class="depth-z-mid text-xs text-[#6E635A] border-t border-[#E3D9C9] pt-2">
-                                            {{ $event->meeting_point }}
-                                        </span>
+                            <div class="lg:col-span-3">
+                                <div class="relative aspect-[4/3] bg-[#FFFFFF] border border-[#E3D9C9] p-4 flex flex-col justify-between hover:border-[#6B3F1E] transition-colors">
+                                    <div class="flex items-center justify-between text-xs text-[#6B3F1E] font-semibold uppercase border-b border-[#E3D9C9]/80 pb-2">
+                                        <span>Tur Heritage</span>
+                                        <span class="tabular-nums"><span data-count-up="{{ $event->duration_minutes }}">{{ $event->duration_minutes }}</span> Menit</span>
                                     </div>
+                                    <p class="font-serif text-lg font-bold text-[#2A211A] leading-snug my-auto py-2">
+                                        {{ $event->title }}
+                                    </p>
+                                    <span class="text-xs text-[#6E635A] border-t border-[#E3D9C9] pt-2">
+                                        {{ $event->meeting_point }}
+                                    </span>
                                 </div>
                             </div>
 
@@ -90,17 +86,20 @@
                                 @endif
                             </div>
 
-                            <div class="lg:col-span-3 lg:border-l lg:border-[#E3D9C9] lg:pl-6 flex flex-col justify-between space-y-4 heritage-3d-stage">
-                                <div data-tilt-card data-tilt-max="4.5" class="heritage-card-interactive bg-[#FFFFFF] border border-[#E3D9C9] p-4">
+                            <div class="lg:col-span-3 lg:border-l lg:border-[#E3D9C9] lg:pl-6 flex flex-col justify-between space-y-4">
+                                <div class="bg-[#FFFFFF] border border-[#E3D9C9] p-4">
                                     <span class="text-xs uppercase tracking-wider text-[#6E635A] block">Harga Tiket Tetap</span>
-                                    <span class="depth-z-front font-serif text-2xl font-bold text-[#6B3F1E] tabular-nums block mt-1">
+                                    <span class="font-serif text-2xl font-bold text-[#6B3F1E] tabular-nums block mt-1">
                                         {{ $event->formattedPrice() }}
                                     </span>
                                     <span class="text-xs text-[#6E635A] block mt-1">Tarif seragam per orang</span>
                                 </div>
 
-                                <a href="{{ route('events.show', $event->slug) }}" class="btn-heritage-primary w-full text-center">
-                                    Pilih Jadwal & Pesan
+                                <a href="{{ route('events.show', $event->slug) }}" class="btn-heritage-primary w-full text-center inline-flex items-center justify-center gap-2 group">
+                                    <span>Pilih Jadwal & Pesan</span>
+                                    <svg class="w-4 h-4 transition-transform group-hover:translate-x-1" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                    </svg>
                                 </a>
                             </div>
                         </article>

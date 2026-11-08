@@ -931,8 +931,11 @@
                                     </span>
                                     <div class="mt-2 space-y-1 text-xs">
                                         <a href="{{ route('admin.orders.index', ['inspect' => $order->order_code]) }}"
-                                           class="text-[#6B3F1E] hover:underline block font-medium">
-                                            Kelola Order &rarr;
+                                           class="text-[#6B3F1E] hover:underline inline-flex items-center gap-1 font-medium group">
+                                            <span>Kelola Order</span>
+                                            <svg class="w-3 h-3 transition-transform group-hover:translate-x-0.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                                <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                            </svg>
                                         </a>
                                         @if($order->status === 'paid')
                                             <a href="{{ route('orders.ticket', ['order_code' => $order->order_code, 'token' => $order->access_token]) }}"
@@ -1356,9 +1359,11 @@
                 </button>
                 <button type="button"
                         id="confirm-print-btn"
-                        class="btn-heritage-primary text-xs py-2 px-5 cursor-pointer flex items-center gap-1.5">
+                        class="btn-heritage-primary text-xs py-2 px-5 cursor-pointer inline-flex items-center gap-1.5 group">
                     <span>Lanjutkan Cetak (PDF)</span>
-                    <span>&rarr;</span>
+                    <svg class="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
                 </button>
             </div>
         </div>

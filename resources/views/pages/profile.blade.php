@@ -54,8 +54,11 @@
                         4. Kontak & Lokasi
                     </a>
                 </div>
-                <a href="{{ route('articles.index') }}" class="link-heritage-tertiary text-xs uppercase tracking-wider">
-                    Buka Halaman Indeks Artikel Penuh &rarr;
+                <a href="{{ route('articles.index') }}" class="link-heritage-tertiary text-xs uppercase tracking-wider inline-flex items-center gap-1 group">
+                    <span>Buka Halaman Indeks Artikel Penuh</span>
+                    <svg class="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
                 </a>
             </nav>
         </div>
@@ -121,8 +124,11 @@
                             </a>
                         @endif
                     @endauth
-                    <a href="{{ route('articles.index') }}" class="link-heritage-tertiary text-sm">
-                        Lihat Semua Artikel ({{ $articles->count() }}) &rarr;
+                    <a href="{{ route('articles.index') }}" class="link-heritage-tertiary text-sm inline-flex items-center gap-1 group">
+                        <span>Lihat Semua Artikel ({{ $articles->count() }})</span>
+                        <svg class="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
                     </a>
                 </div>
             </div>
@@ -196,8 +202,11 @@
 
                                 <div class="pt-1 flex items-center justify-between text-xs">
                                     <span class="text-[#6E635A]">Penulis: <strong class="text-[#2A211A]">{{ $article->author_name }}</strong></span>
-                                    <a href="{{ route('articles.show', $article->slug) }}" class="link-heritage-tertiary text-sm">
-                                        Baca Selengkapnya &rarr;
+                                    <a href="{{ route('articles.show', $article->slug) }}" class="link-heritage-tertiary text-sm inline-flex items-center gap-1 group">
+                                        <span>Baca Selengkapnya</span>
+                                        <svg class="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                            <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                        </svg>
                                     </a>
                                 </div>
                             </div>

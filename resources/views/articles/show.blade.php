@@ -87,8 +87,11 @@
                     <h2 class="font-serif text-xl font-bold text-[#2A211A]">Ingin Menyaksikan Langsung Warisan PG Candi Baru?</h2>
                     <p class="text-xs text-[#6E635A] mt-0.5">Pilih jadwal sesi kunjungan edukasi dan pesan E-Ticket resmi secara daring.</p>
                 </div>
-                <a href="{{ route('events.index') }}" class="btn-heritage-primary text-sm shrink-0">
-                    Lihat Jadwal Tour &rarr;
+                <a href="{{ route('events.index') }}" class="btn-heritage-primary text-sm shrink-0 inline-flex items-center gap-2 group">
+                    <span>Lihat Jadwal Tour</span>
+                    <svg class="w-4 h-4 transition-transform group-hover:translate-x-1" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                        <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                    </svg>
                 </a>
             </div>
 
@@ -98,14 +101,19 @@
                     <h2 class="font-serif text-2xl font-bold text-[#2A211A]">Artikel Sejarah Lainnya</h2>
                     <div data-reveal-stagger="100" class="grid grid-cols-1 md:grid-cols-3 gap-4">
                         @foreach($relatedArticles as $rel)
-                            <div data-reveal="up" data-tilt-card class="heritage-card-interactive border border-[#E3D9C9] bg-[#FFFFFF] p-4 flex flex-col justify-between space-y-3">
+                            <div data-reveal="up" class="border border-[#E3D9C9] bg-[#FFFFFF] p-4 flex flex-col justify-between space-y-3 hover:border-[#6B3F1E] transition-colors">
                                 <div class="space-y-1.5">
                                     <span class="text-[11px] uppercase tracking-wider font-semibold text-[#6B3F1E] block">{{ $rel->category }}</span>
                                     <h3 class="font-serif text-base font-bold text-[#2A211A] leading-snug">
                                         <a href="{{ route('articles.show', $rel->slug) }}" class="hover:text-[#6B3F1E]">{{ $rel->title }}</a>
                                     </h3>
                                 </div>
-                                <a href="{{ route('articles.show', $rel->slug) }}" class="link-heritage-tertiary text-xs">Baca Artikel &rarr;</a>
+                                <a href="{{ route('articles.show', $rel->slug) }}" class="link-heritage-tertiary text-xs inline-flex items-center gap-1 group">
+                                    <span>Baca Artikel</span>
+                                    <svg class="w-3 h-3 transition-transform group-hover:translate-x-0.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                    </svg>
+                                </a>
                             </div>
                         @endforeach
                     </div>

@@ -397,8 +397,8 @@
         <div class="relative z-10 max-w-[1200px] mx-auto px-4 sm:px-6">
             <div data-reveal="up" class="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-8 border-b border-[#E3D9C9]">
                 <div>
-                    <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold">Katalog Event &amp; Jadwal Terbuka</span>
-                    <h2 class="font-serif text-3xl font-semibold text-[#2A211A] mt-1">Program Kunjungan &amp; Sesi Tour Aktif</h2>
+                    <h2 class="font-serif text-3xl font-semibold text-[#2A211A]">Program Kunjungan &amp; Sesi Tour Aktif</h2>
+                    <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold mt-1 block">Jadwal Operasional Terbuka untuk Umum &amp; Rombongan</span>
                 </div>
                 <p class="text-sm text-[#6E635A] max-w-[46ch]">
                     Pilih tanggal dan sesi kunjungan terlebih dahulu sebelum mengisi data pemesan. Seluruh harga tiket berlaku seragam per peserta.
@@ -422,24 +422,23 @@
                             $totalRemaining = $openSchedules->sum(fn($s) => $s->remainingQuota());
                         @endphp
                         <article data-reveal="up" class="py-8 grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-                            <!-- Small Archival Thumbnail + 3D Stacked Plate Meta (List Item Pattern per DESIGN.md §6 & §8) -->
-                            <div class="lg:col-span-3 heritage-3d-stage">
-                                <div class="heritage-stack-group">
-                                    <div class="heritage-stack-plate-2" aria-hidden="true"></div>
-                                    <div class="heritage-stack-plate-1" aria-hidden="true"></div>
-                                    <div data-tilt-card data-tilt-max="6" class="heritage-card-interactive relative z-10 aspect-[4/3] bg-[#F3EAD8] border border-[#E3D9C9] p-4 flex flex-col justify-between">
-                                        <span class="depth-z-mid text-[11px] uppercase tracking-[0.08em] text-[#6B3F1E] font-semibold tabular-nums">
+                            <!-- Archival Ticket Stub Meta -->
+                            <div class="lg:col-span-3">
+                                <div class="relative aspect-[4/3] bg-[#FFFFFF] border border-[#E3D9C9] p-4 flex flex-col justify-between hover:border-[#6B3F1E] transition-colors">
+                                    <div class="flex items-center justify-between border-b border-[#E3D9C9]/80 pb-2">
+                                        <span class="text-[11px] uppercase tracking-wider text-[#6B3F1E] font-semibold tabular-nums">
                                             Durasi <span data-count-up="{{ $event->duration_minutes }}">{{ $event->duration_minutes }}</span> Menit
                                         </span>
-                                        <div class="depth-z-front my-auto py-2">
-                                            <span class="font-serif text-lg font-semibold text-[#2A211A] block leading-snug">
-                                                {{ $event->title }}
-                                            </span>
-                                        </div>
-                                        <span class="depth-z-mid text-xs text-[#6E635A] border-t border-[#E3D9C9] pt-2">
-                                            Titik Kumpul: {{ $event->meeting_point }}
+                                        <span class="w-1.5 h-1.5 bg-[#C8A24A]"></span>
+                                    </div>
+                                    <div class="my-auto py-2">
+                                        <span class="font-serif text-lg font-semibold text-[#2A211A] block leading-snug">
+                                            {{ $event->title }}
                                         </span>
                                     </div>
+                                    <span class="text-xs text-[#6E635A] border-t border-[#E3D9C9] pt-2">
+                                        Titik Kumpul: {{ $event->meeting_point }}
+                                    </span>
                                 </div>
                             </div>
 
@@ -499,8 +498,11 @@
                                     <span class="text-xs text-[#6E635A]">Per peserta (berlaku seragam semua kategori)</span>
                                 </div>
 
-                                <a href="{{ route('events.show', $event->slug) }}" class="btn-heritage-secondary w-full text-center">
-                                    Pilih Tanggal &amp; Sesi &rarr;
+                                <a href="{{ route('events.show', $event->slug) }}" class="btn-heritage-secondary w-full text-center inline-flex items-center justify-center gap-2 group">
+                                    <span>Pilih Tanggal &amp; Sesi</span>
+                                    <svg class="w-4 h-4 transition-transform group-hover:translate-x-1" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                    </svg>
                                 </a>
                             </div>
                         </article>
@@ -526,8 +528,11 @@
                             @endforeach
                         </div>
                         <div class="pt-2">
-                            <a href="{{ route('profile') }}" class="link-heritage-tertiary text-sm">
-                                Baca Profil Lengkap, Galeri Arsip &amp; Kontak Operasional &rarr;
+                            <a href="{{ route('profile') }}" class="link-heritage-tertiary text-sm inline-flex items-center gap-1.5 group">
+                                <span>Baca Profil Lengkap, Galeri Arsip &amp; Kontak Operasional</span>
+                                <svg class="w-3.5 h-3.5 transition-transform group-hover:translate-x-1" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                    <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                </svg>
                             </a>
                         </div>
                     </div>

@@ -173,8 +173,11 @@
                             @if($selectedOrder->status === 'paid')
                                 <a href="{{ route('orders.ticket', ['order_code' => $selectedOrder->order_code, 'token' => $selectedOrder->access_token]) }}"
                                    target="_blank"
-                                   class="link-heritage-tertiary text-xs">
-                                    Buka Lembar Cetak E-Ticket &rarr;
+                                   class="link-heritage-tertiary text-xs inline-flex items-center gap-1 group">
+                                    <span>Buka Lembar Cetak E-Ticket</span>
+                                    <svg class="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                                        <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                                    </svg>
                                 </a>
                             @endif
                         </div>

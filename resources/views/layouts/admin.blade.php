@@ -30,8 +30,11 @@
                             PT PG Candi Baru
                         </span>
                     </div>
-                    <a href="{{ route('home') }}" class="lg:hidden text-xs font-medium text-[#6B3F1E] underline">
-                        Lihat Website &rarr;
+                    <a href="{{ route('home') }}" class="lg:hidden text-xs font-medium text-[#6B3F1E] inline-flex items-center gap-1 group">
+                        <span>Lihat Website</span>
+                        <svg class="w-3 h-3 transition-transform group-hover:translate-x-0.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M10.293 3.293a1 1 0 011.414 0l6 6a1 1 0 010 1.414l-6 6a1 1 0 01-1.414-1.414L14.586 11H3a1 1 0 110-2h11.586l-4.293-4.293a1 1 0 010-1.414z" clip-rule="evenodd" />
+                        </svg>
                     </a>
                 </div>
 
@@ -73,8 +76,11 @@
                     <strong class="text-[#2A211A] text-sm">{{ auth()->user()?->name }}</strong>
                 </div>
                 <div class="flex items-center justify-between pt-2 border-t border-[#E3D9C9]">
-                    <a href="{{ route('home') }}" class="text-[#6B3F1E] font-semibold hover:underline">
-                        &larr; Halaman Publik
+                    <a href="{{ route('home') }}" class="text-[#6B3F1E] font-semibold hover:underline inline-flex items-center gap-1 group">
+                        <svg class="w-3.5 h-3.5 transition-transform group-hover:-translate-x-0.5" viewBox="0 0 20 20" fill="currentColor" aria-hidden="true">
+                            <path fill-rule="evenodd" d="M9.707 16.707a1 1 0 01-1.414 0l-6-6a1 1 0 010-1.414l6-6a1 1 0 011.414 1.414L5.414 9H17a1 1 0 110 2H5.414l4.293 4.293a1 1 0 010 1.414z" clip-rule="evenodd" />
+                        </svg>
+                        <span>Halaman Publik</span>
                     </a>
                     <form action="{{ route('logout') }}" method="POST">
                         @csrf
