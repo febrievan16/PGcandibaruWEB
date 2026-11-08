@@ -32,24 +32,108 @@ class AdminDashboardController extends Controller
      */
     public function index(Request $request): View
     {
-        $metrics = Order::query()
-            ->selectRaw("
-                COALESCE(SUM(CASE WHEN status = 'paid' THEN total_amount ELSE 0 END), 0) as total_revenue,
-                COUNT(CASE WHEN status = 'paid' THEN 1 END) as paid_orders_count,
-                COUNT(CASE WHEN status = 'pending' THEN 1 END) as pending_orders_count,
-                COALESCE(SUM(CASE WHEN status = 'paid' THEN ticket_qty ELSE 0 END), 0) as tickets_sold_count
-            ")
-            ->first();
+        $orders = Order::query()
+            ->select(['status', 'ticket_qty', 'total_amount', 'paid_at', 'created_at'])
+            ->get();
 
-        $totalRevenue = (int) ($metrics->total_revenue ?? 0);
-        $paidOrdersCount = (int) ($metrics->paid_orders_count ?? 0);
-        $pendingOrdersCount = (int) ($metrics->pending_orders_count ?? 0);
-        $ticketsSoldCount = (int) ($metrics->tickets_sold_count ?? 0);
+        $paidOrders = $orders->where('status', 'paid');
+        $totalRevenue = (int) $paidOrders->sum('total_amount');
+        $paidOrdersCount = $paidOrders->count();
+        $pendingOrdersCount = $orders->where('status', 'pending')->count();
+        $ticketsSoldCount = (int) $paidOrders->sum('ticket_qty');
+
+        // Build 8-month grouped bar chart statistics from in-memory orders (zero extra SQL queries)
+        $monthShortNames = [
+            1 => 'JAN', 2 => 'FEB', 3 => 'MAR', 4 => 'APR',
+            5 => 'MEI', 6 => 'JUN', 7 => 'JUL', 8 => 'AGU',
+            9 => 'SEP', 10 => 'OKT', 11 => 'NOV', 12 => 'DES',
+        ];
+
+        $ordersByYearMonth = $orders->groupBy(function (Order $order): string {
+            $refDate = $order->paid_at ?? $order->created_at ?? now();
+
+            return $refDate->format('Y-m');
+        });
+
+        $rawMonths = [];
+        $maxChartVal = 1;
+        for ($i = 7; $i >= 0; $i--) {
+            $monthDate = now()->startOfMonth()->subMonths($i);
+            $ymKey = $monthDate->format('Y-m');
+            $monthGroup = $ordersByYearMonth->get($ymKey, collect());
+
+            $mTickets = (int) $monthGroup->where('status', 'paid')->sum('ticket_qty');
+            $mPaid = $monthGroup->where('status', 'paid')->count();
+            $mPending = $monthGroup->where('status', 'pending')->count();
+            $mRevenue = (int) $monthGroup->where('status', 'paid')->sum('total_amount');
+
+            $maxChartVal = max($maxChartVal, $mTickets, $mPaid, $mPending);
+
+            $rawMonths[] = [
+                'ym' => $ymKey,
+                'label' => $monthShortNames[(int) $monthDate->format('n')] ?? strtoupper($monthDate->format('M')),
+                'full_label' => $monthDate->translatedFormat('F Y'),
+                'tickets_sold' => $mTickets,
+                'paid_orders' => $mPaid,
+                'pending_orders' => $mPending,
+                'revenue' => $mRevenue,
+            ];
+        }
+
+        $monthlyChartData = collect($rawMonths)->map(function (array $item) use ($maxChartVal): array {
+            $item['tickets_pct'] = $item['tickets_sold'] > 0
+                ? max(14, (int) round(($item['tickets_sold'] / $maxChartVal) * 100))
+                : 6;
+            $item['paid_pct'] = $item['paid_orders'] > 0
+                ? max(14, (int) round(($item['paid_orders'] / $maxChartVal) * 100))
+                : 6;
+            $item['pending_pct'] = $item['pending_orders'] > 0
+                ? max(14, (int) round(($item['pending_orders'] / $maxChartVal) * 100))
+                : 6;
+
+            return $item;
+        });
 
         $schedules = Schedule::with('event:id,title')
             ->orderBy('tour_date')
             ->orderBy('start_time')
             ->get();
+
+        $totalQuotaCapacity = (int) $schedules->sum('quota_total');
+        $totalQuotaBooked = (int) $schedules->sum('quota_booked');
+        $overallOccupancyPct = $totalQuotaCapacity > 0
+            ? min(100, (int) round(($totalQuotaBooked / $totalQuotaCapacity) * 100))
+            : 0;
+
+        // Build Event Tour Donut Chart distribution from loaded schedules (zero extra SQL queries)
+        $donutPalette = ['#fe7096', '#36a2eb', '#4bc0c0', '#a461d8', '#ff9f40'];
+        $circumference = 84.823; // 2 * pi * 13.5
+        $groupedByEvent = $schedules->groupBy('event_id');
+        $totalEventWeight = $totalQuotaBooked > 0 ? $totalQuotaBooked : max(1, $totalQuotaCapacity);
+        $runningOffset = 0.0;
+
+        $eventDistribution = $groupedByEvent->values()->map(function ($eventSchedules, int $idx) use ($donutPalette, $totalQuotaBooked, $totalEventWeight, $circumference, &$runningOffset): array {
+            $firstSchedule = $eventSchedules->first();
+            $title = $firstSchedule?->event?->title ?? 'Program Tour Heritage';
+            $booked = (int) $eventSchedules->sum('quota_booked');
+            $capacity = (int) $eventSchedules->sum('quota_total');
+            $weight = $totalQuotaBooked > 0 ? $booked : $capacity;
+            $pct = $totalEventWeight > 0 ? (int) round(($weight / $totalEventWeight) * 100) : 0;
+
+            $arcLen = round(($pct / 100) * $circumference, 2);
+            $currentOffset = round(-$runningOffset, 2);
+            $runningOffset += $arcLen;
+
+            return [
+                'title' => $title,
+                'booked' => $booked,
+                'capacity' => $capacity,
+                'percentage' => $pct,
+                'color' => $donutPalette[$idx % count($donutPalette)],
+                'dash_array' => "{$arcLen} {$circumference}",
+                'dash_offset' => (string) $currentOffset,
+            ];
+        });
 
         $occupancyEvents = $schedules
             ->pluck('event')
@@ -77,6 +161,11 @@ class AdminDashboardController extends Controller
             'paidOrdersCount' => $paidOrdersCount,
             'pendingOrdersCount' => $pendingOrdersCount,
             'ticketsSoldCount' => $ticketsSoldCount,
+            'totalQuotaCapacity' => $totalQuotaCapacity,
+            'totalQuotaBooked' => $totalQuotaBooked,
+            'overallOccupancyPct' => $overallOccupancyPct,
+            'monthlyChartData' => $monthlyChartData,
+            'eventDistribution' => $eventDistribution,
             'schedules' => $schedules,
             'occupancyEvents' => $occupancyEvents,
             'filterEventId' => $filterEventId,

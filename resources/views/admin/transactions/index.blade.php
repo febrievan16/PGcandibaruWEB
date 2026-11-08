@@ -28,333 +28,598 @@
 
         $grandTotalRevenue = (int) $paidOrders->sum('total_amount');
         $grandTotalTickets = (int) $paidOrders->sum('ticket_qty');
+        $totalTicketsRequestedAll = (int) $allOrders->sum('ticket_qty');
         $avgOrderValue = $paidOrders->count() > 0 ? (int) round($grandTotalRevenue / $paidOrders->count()) : 0;
+        $overallConversionPct = $allOrders->count() > 0
+            ? (int) round(($paidOrders->count() / $allOrders->count()) * 100)
+            : 0;
 
         $topEvent = $eventRankings->first();
         $topBuyer = $buyerSummaries->first();
+
+        $registeredBuyersCount = $buyerSummaries->where('is_registered', true)->count();
+        $registeredBuyerPct = $buyerSummaries->count() > 0
+            ? (int) round(($registeredBuyersCount / $buyerSummaries->count()) * 100)
+            : 0;
 
         $reportPeriodLabel = $selectedMonth !== ''
             ? \Illuminate\Support\Carbon::createFromFormat('Y-m-d', $selectedMonth . '-01')->translatedFormat('F Y')
             : 'Rekapitulasi 6 Bulan Terakhir (Semua Periode)';
         $docNumber = 'LAP-GT/' . now()->format('Y/m') . '/' . str_pad((string) $allOrders->count(), 3, '0', STR_PAD_LEFT);
+
+        // Compute SVG Spline Coordinates for the last 6 months in $monthlyReport
+        $chartMonths = $monthlyReport->slice(-6)->values();
+        $chartCount = max(1, $chartMonths->count());
+        $xStart = 55;
+        $xEnd = 575;
+        $yTop = 28;
+        $yBottom = 142;
+        $xStep = $chartCount > 1 ? ($xEnd - $xStart) / ($chartCount - 1) : 0;
+
+        $revPoints = [];
+        $tktPoints = [];
+        $peakIdx = 0;
+        $peakRev = -1;
+
+        foreach ($chartMonths as $idx => $cm) {
+            $cx = round($xStart + ($idx * $xStep), 1);
+            $revRatio = $maxMonthlyRevenue > 0 ? ($cm['revenue'] / $maxMonthlyRevenue) : 0;
+            $tktRatio = $maxMonthlyTickets > 0 ? ($cm['tickets_sold'] / $maxMonthlyTickets) : 0;
+
+            $cyRev = round($yBottom - ($revRatio * ($yBottom - $yTop)), 1);
+            $cyTkt = round($yBottom - ($tktRatio * ($yBottom - $yTop - 18)), 1);
+
+            if ($cm['revenue'] >= $peakRev) {
+                $peakRev = $cm['revenue'];
+                $peakIdx = $idx;
+            }
+
+            $revPoints[] = ['x' => $cx, 'y' => $cyRev, 'data' => $cm];
+            $tktPoints[] = ['x' => $cx, 'y' => $cyTkt, 'data' => $cm];
+        }
+
+        $buildSmoothSvgPath = function (array $pts): string {
+            if (count($pts) === 0) {
+                return '';
+            }
+            if (count($pts) === 1) {
+                return "M {$pts[0]['x']},{$pts[0]['y']}";
+            }
+            $d = "M {$pts[0]['x']},{$pts[0]['y']}";
+            for ($i = 0; $i < count($pts) - 1; $i++) {
+                $p0 = $pts[$i];
+                $p1 = $pts[$i + 1];
+                $midX = round(($p0['x'] + $p1['x']) / 2, 1);
+                $d .= " C {$midX},{$p0['y']} {$midX},{$p1['y']} {$p1['x']},{$p1['y']}";
+            }
+            return $d;
+        };
+
+        $revenueSplinePath = $buildSmoothSvgPath($revPoints);
+        $ticketSplinePath = $buildSmoothSvgPath($tktPoints);
+        $firstX = $revPoints[0]['x'] ?? $xStart;
+        $lastX = $revPoints[count($revPoints) - 1]['x'] ?? $xEnd;
+        $revenueAreaPath = $revenueSplinePath !== ''
+            ? "{$revenueSplinePath} L {$lastX},{$yBottom} L {$firstX},{$yBottom} Z"
+            : '';
+        $peakPoint = $revPoints[$peakIdx] ?? ['x' => 300, 'y' => 60, 'data' => ['revenue' => 0, 'short_label' => '-']];
+
+        // Semi-circle gauge arc (total half-circle arc length for r=38 is pi * 38 = 119.38)
+        $gaugeCircumference = 119.38;
+        $gaugeDash = round(($overallConversionPct / 100) * $gaugeCircumference, 1);
+
+        // Donut segments for Event Rankings (r=13.5 => circumference = 84.823)
+        $heritageDonutColors = ['#6B3F1E', '#C8A24A', '#A67C52', '#4A6B3A', '#8B2E1F'];
+        $donutCircumference = 84.823;
+        $donutOffset = 0.0;
+        $eventDonutSegments = $eventRankings->map(function (array $ev, int $idx) use ($heritageDonutColors, $donutCircumference, &$donutOffset): array {
+            $pct = max(0, (int) $ev['revenue_share_pct']);
+            $arc = round(($pct / 100) * $donutCircumference, 2);
+            $seg = [
+                'title' => $ev['title'],
+                'event_id' => $ev['event_id'],
+                'revenue' => $ev['revenue'],
+                'tickets_sold' => $ev['tickets_sold'],
+                'total_orders' => $ev['total_orders'],
+                'pct' => $pct,
+                'color' => $heritageDonutColors[$idx % count($heritageDonutColors)],
+                'dash_array' => "{$arc} {$donutCircumference}",
+                'dash_offset' => (string) round(-$donutOffset, 2),
+            ];
+            $donutOffset += $arc;
+            return $seg;
+        });
     @endphp
 
     <!-- ===================================================================== -->
     <!-- A. INTERACTIVE WEB DASHBOARD VIEW (Hidden automatically during print) -->
     <!-- ===================================================================== -->
-    <div id="interactive-report-dashboard" class="space-y-8 no-print">
+    <div id="interactive-report-dashboard" class="space-y-6 no-print">
 
-        <!-- 1. Executive KPI Summary Cards -->
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            <div class="border border-[#E3D9C9] bg-[#FFFFFF] p-5">
-                <span class="text-xs uppercase tracking-wider text-[#6E635A] font-semibold block">Total Pendapatan Lunas</span>
-                <span class="font-serif text-2xl font-bold text-[#6B3F1E] tabular-nums block mt-1">
-                    Rp {{ number_format($grandTotalRevenue, 0, ',', '.') }}
-                </span>
-                <span class="text-xs text-[#4A6B3A] mt-1.5 block tabular-nums">
-                    {{ $paidOrders->count() }} transaksi lunas &bull; Rata-rata Rp {{ number_format($avgOrderValue, 0, ',', '.') }}/order
-                </span>
-            </div>
+        <!-- ================================================================= -->
+        <!-- BENTO ROW 1: Left 9/12 (3 KPIs + Line Chart + Gauge) & Right 3/12 -->
+        <!-- ================================================================= -->
+        <div class="grid grid-cols-1 xl:grid-cols-12 gap-5 items-stretch">
 
-            <div class="border border-[#E3D9C9] bg-[#FFFFFF] p-5">
-                <span class="text-xs uppercase tracking-wider text-[#6E635A] font-semibold block">Total Tiket & Peserta</span>
-                <span class="font-serif text-2xl font-bold text-[#2A211A] tabular-nums block mt-1">
-                    {{ $grandTotalTickets }} Tiket Lunas
-                </span>
-                <span class="text-xs text-[#6E635A] mt-1.5 block tabular-nums">
-                    Total {{ $allOrders->count() }} order ({{ $pendingOrders->count() }} pending, {{ $voidOrders->count() }} batal/expired)
-                </span>
-            </div>
+            <!-- Left 9/12 Column Stack -->
+            <div class="xl:col-span-9 flex flex-col gap-5">
 
-            <div class="border border-[#6B3F1E] bg-[#F3EAD8]/65 p-5">
-                <span class="text-xs uppercase tracking-wider text-[#6B3F1E] font-bold block">Event Paling Sering Dipesan (#1)</span>
-                <span class="font-serif text-lg font-bold text-[#2A211A] block mt-1 leading-snug">
-                    {{ $topEvent['title'] ?? '-' }}
-                </span>
-                @if($topEvent)
-                    <span class="text-xs text-[#6B3F1E] font-semibold mt-1.5 block tabular-nums">
-                        {{ $topEvent['total_orders'] }}x dipesan &bull; {{ $topEvent['tickets_sold'] }} tiket ({{ $topEvent['revenue_share_pct'] }}% pendapatan)
-                    </span>
-                @endif
-            </div>
-
-            <div class="border border-[#E3D9C9] bg-[#FFFFFF] p-5">
-                <span class="text-xs uppercase tracking-wider text-[#A67C52] font-semibold block">Pemesan Volume Tertinggi (#1)</span>
-                <span class="font-serif text-lg font-bold text-[#2A211A] block mt-1 leading-snug">
-                    {{ $topBuyer['buyer_name'] ?? '-' }}
-                </span>
-                @if($topBuyer)
-                    <span class="text-xs text-[#4A6B3A] font-semibold mt-1.5 block tabular-nums">
-                        {{ $topBuyer['total_tickets_all'] }} tiket ({{ $topBuyer['total_orders'] }}x order) &bull; Rp {{ number_format($topBuyer['total_spent'], 0, ',', '.') }}
-                    </span>
-                @endif
-            </div>
-        </div>
-
-        <!-- 2. Visualisasi Laporan Bulanan (Grafik Visual & Tabel Rincian Per Bulan) -->
-        <div class="border border-[#E3D9C9] bg-[#FFFFFF] p-6 space-y-6">
-            <div class="flex flex-col sm:flex-row sm:items-end justify-between gap-4 border-b border-[#E3D9C9] pb-4">
-                <div>
-                    <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold block">
-                        Visualisasi Data Laporan Bulanan
-                    </span>
-                    <h2 class="font-serif text-2xl font-bold text-[#2A211A] mt-0.5">
-                        Grafik Tren Pendapatan & Penjualan Tiket Bulanan (6 Bulan Terakhir)
-                    </h2>
-                </div>
-                <div class="flex flex-wrap items-center gap-4 text-xs">
-                    <span class="inline-flex items-center gap-1.5 font-semibold text-[#2A211A]">
-                        <span class="w-3.5 h-3.5 bg-[#6B3F1E] inline-block border border-[#2A211A]"></span>
-                        Pendapatan Lunas (IDR)
-                    </span>
-                    <span class="inline-flex items-center gap-1.5 font-semibold text-[#2A211A]">
-                        <span class="w-3.5 h-3.5 bg-[#C8A24A] inline-block border border-[#6B3F1E]"></span>
-                        Jumlah Tiket Terjual
-                    </span>
-                </div>
-            </div>
-
-            <!-- Interactive Visual Bar Chart (Monthly Revenue & Tickets) -->
-            <div class="bg-[#FAF6EE] border border-[#E3D9C9] p-5">
-                <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4 items-end min-h-[250px] pt-8">
-                    @foreach($monthlyReport as $m)
-                        @php
-                            $revHeightPct = $m['revenue'] > 0
-                                ? max(12, (int) round(($m['revenue'] / $maxMonthlyRevenue) * 100))
-                                : 4;
-                            $tktHeightPct = $m['tickets_sold'] > 0
-                                ? max(10, (int) round(($m['tickets_sold'] / $maxMonthlyTickets) * 100))
-                                : 4;
-                            $isSelectedMonth = ($selectedMonth === $m['month_key']);
-                        @endphp
-                        <a href="{{ route('admin.transactions.index', ['month' => $isSelectedMonth ? '' : $m['month_key']]) }}#tabel-rincian-transaksi"
-                           title="Klik untuk memfilter transaksi bulan {{ $m['month_label'] }}"
-                           class="group flex flex-col justify-end h-full p-3 border transition-colors {{ $isSelectedMonth ? 'border-[#6B3F1E] bg-[#F3EAD8]' : 'border-[#E3D9C9] bg-[#FFFFFF] hover:border-[#6B3F1E]' }}">
-
-                            <div class="text-center mb-3 space-y-0.5 tabular-nums">
-                                <span class="text-[11px] font-bold text-[#6B3F1E] block">
-                                    Rp {{ number_format($m['revenue'], 0, ',', '.') }}
+                <!-- Sub-Row 1A: 3 KPI Summary Cards (EzMart Layout + Heritage Palette) -->
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-5">
+                    <!-- KPI 1: Highlighted Warm Heritage Gold-Cream Card -->
+                    <div class="rounded-2xl bg-gradient-to-br from-[#F3EAD8] to-[#FAF0DC] border border-[#D8C5A8] p-5 flex flex-col justify-between shadow-2xs">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="text-xs font-semibold text-[#6E635A]">Total Pendapatan Lunas</span>
+                            <span class="w-9 h-9 rounded-xl bg-[#6B3F1E] text-[#FAF6EE] inline-flex items-center justify-center shadow-xs shrink-0">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                    <circle cx="12" cy="12" r="9"></circle>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M14.5 9.5c-.5-1-1.5-1.5-2.5-1.5-1.5 0-2.5.8-2.5 2s1 1.8 2.5 2.2 2.5 1 2.5 2.3-1 2-2.5 2c-1 0-2-.5-2.5-1.5M12 6.5v11"></path>
+                                </svg>
+                            </span>
+                        </div>
+                        <div class="mt-4 flex items-end justify-between gap-2">
+                            <div>
+                                <span class="font-serif text-2xl font-bold text-[#6B3F1E] tabular-nums tracking-tight block">
+                                    Rp {{ number_format($grandTotalRevenue, 0, ',', '.') }}
                                 </span>
-                                <span class="text-[11px] text-[#6E635A] block">
-                                    {{ $m['tickets_sold'] }} tiket &bull; {{ $m['total_orders'] }} order
+                                <span class="text-xs text-[#6E635A] mt-0.5 block tabular-nums">
+                                    Rata-rata Rp {{ number_format($avgOrderValue, 0, ',', '.') }}/order
                                 </span>
                             </div>
-
-                            <div class="h-36 flex items-end justify-center gap-2.5 border-b-2 border-[#2A211A] pb-1 px-2">
-                                <div class="w-7 bg-[#6B3F1E] group-hover:bg-[#563218] transition-all relative"
-                                     style="height: {{ $revHeightPct }}%"
-                                     aria-label="Pendapatan {{ $m['month_label'] }}: Rp {{ number_format($m['revenue'], 0, ',', '.') }}">
-                                </div>
-                                <div class="w-7 bg-[#C8A24A] border border-[#6B3F1E] transition-all relative"
-                                     style="height: {{ $tktHeightPct }}%"
-                                     aria-label="Tiket Terjual {{ $m['month_label'] }}: {{ $m['tickets_sold'] }} tiket">
-                                </div>
-                            </div>
-
-                            <div class="pt-2.5 text-center">
-                                <strong class="text-xs font-serif font-bold text-[#2A211A] block">{{ $m['month_label'] }}</strong>
-                                <span class="text-[10px] uppercase tracking-wider {{ $m['conversion_rate'] >= 70 ? 'text-[#4A6B3A]' : 'text-[#6E635A]' }} font-semibold">
-                                    Konversi {{ $m['conversion_rate'] }}%
+                            <div class="text-right shrink-0">
+                                <span class="inline-block px-2 py-0.5 rounded-md bg-[#4A6B3A]/15 text-[#4A6B3A] text-xs font-bold tabular-nums">
+                                    {{ $paidOrders->count() }} Lunas
                                 </span>
-                            </div>
-                        </a>
-                    @endforeach
-                </div>
-            </div>
-
-            <!-- Detailed Monthly Breakdown Table -->
-            <div class="overflow-x-auto border border-[#E3D9C9]">
-                <table class="w-full text-sm text-left border-collapse">
-                    <thead>
-                        <tr class="border-b border-[#E3D9C9] bg-[#FAF6EE] text-xs uppercase tracking-wider text-[#6E635A]">
-                            <th class="py-3 px-4 font-semibold">Periode Bulan</th>
-                            <th class="py-3 px-4 font-semibold text-right">Total Order</th>
-                            <th class="py-3 px-4 font-semibold text-right">Rincian Status</th>
-                            <th class="py-3 px-4 font-semibold text-right">Tiket Terjual (Lunas)</th>
-                            <th class="py-3 px-4 font-semibold">Event Paling Diminati Bulan Ini</th>
-                            <th class="py-3 px-4 font-semibold text-right">Tagihan Pending</th>
-                            <th class="py-3 px-4 font-semibold text-right">Pendapatan Bersih (Lunas)</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-[#E3D9C9]">
-                        @foreach($monthlyReport->reverse() as $m)
-                            <tr class="hover:bg-[#FAF6EE]/60 {{ $selectedMonth === $m['month_key'] ? 'bg-[#F3EAD8]/60' : '' }}">
-                                <td class="py-3.5 px-4 font-serif font-bold text-[#2A211A]">
-                                    <a href="{{ route('admin.transactions.index', ['month' => $m['month_key']]) }}#tabel-rincian-transaksi"
-                                       class="hover:text-[#6B3F1E] underline-offset-4 hover:underline">
-                                        {{ $m['month_label'] }}
-                                    </a>
-                                </td>
-                                <td class="py-3.5 px-4 text-right tabular-nums font-semibold">
-                                    {{ $m['total_orders'] }} Transaksi
-                                </td>
-                                <td class="py-3.5 px-4 text-right tabular-nums text-xs">
-                                    <span class="text-[#4A6B3A] font-semibold">{{ $m['paid_orders'] }} Lunas</span> &bull;
-                                    <span class="text-[#B8860B] font-semibold">{{ $m['pending_orders'] }} Pending</span> &bull;
-                                    <span class="text-[#8B2E1F]">{{ $m['void_orders'] }} Batal</span>
-                                </td>
-                                <td class="py-3.5 px-4 text-right tabular-nums font-bold text-[#2A211A]">
-                                    {{ $m['tickets_sold'] }} Tiket
-                                </td>
-                                <td class="py-3.5 px-4 text-xs">
-                                    @if($m['total_orders'] > 0)
-                                        <strong class="text-[#2A211A]">{{ $m['top_event_title'] }}</strong>
-                                        <span class="text-[#6E635A] tabular-nums">({{ $m['top_event_tickets'] }} tiket)</span>
-                                    @else
-                                        <span class="text-[#6E635A] italic">Belum ada transaksi</span>
-                                    @endif
-                                </td>
-                                <td class="py-3.5 px-4 text-right tabular-nums text-[#B8860B] font-medium">
-                                    Rp {{ number_format($m['pending_amount'], 0, ',', '.') }}
-                                </td>
-                                <td class="py-3.5 px-4 text-right tabular-nums font-serif font-bold text-base text-[#6B3F1E]">
-                                    Rp {{ number_format($m['revenue'], 0, ',', '.') }}
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                    <tfoot>
-                        <tr class="border-t-2 border-[#6B3F1E] bg-[#F3EAD8] font-bold text-[#2A211A]">
-                            <td class="py-3.5 px-4 uppercase text-xs tracking-wider">Total Akumulasi Laporan</td>
-                            <td class="py-3.5 px-4 text-right tabular-nums">{{ $allOrders->count() }} Transaksi</td>
-                            <td class="py-3.5 px-4 text-right tabular-nums text-xs">
-                                {{ $paidOrders->count() }} Lunas / {{ $pendingOrders->count() }} Pending / {{ $voidOrders->count() }} Batal
-                            </td>
-                            <td class="py-3.5 px-4 text-right tabular-nums">{{ $grandTotalTickets }} Tiket</td>
-                            <td class="py-3.5 px-4 text-xs text-[#6B3F1E]">
-                                Terpopuler: {{ $topEvent['title'] ?? '-' }}
-                            </td>
-                            <td class="py-3.5 px-4 text-right tabular-nums text-[#B8860B]">
-                                Rp {{ number_format((int) $pendingOrders->sum('total_amount'), 0, ',', '.') }}
-                            </td>
-                            <td class="py-3.5 px-4 text-right tabular-nums font-serif text-lg text-[#6B3F1E]">
-                                Rp {{ number_format($grandTotalRevenue, 0, ',', '.') }}
-                            </td>
-                        </tr>
-                    </tfoot>
-                </table>
-            </div>
-        </div>
-
-        <!-- 3. Peringkat Event Paling Sering Dipesan & Distribusi Metode Pembayaran -->
-        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-
-            <!-- Left 7/12: Most Frequently Ordered Events Visual Analytics -->
-            <div class="lg:col-span-7 border border-[#E3D9C9] bg-[#FFFFFF] p-6 space-y-5">
-                <div class="border-b border-[#E3D9C9] pb-4 flex items-center justify-between gap-2">
-                    <div>
-                        <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold block">
-                            Analisis Popularitas Program Tour
-                        </span>
-                        <h2 class="font-serif text-xl font-bold text-[#2A211A] mt-0.5">
-                            Peringkat Event Paling Sering Dipesan
-                        </h2>
-                    </div>
-                    <span class="text-xs text-[#6E635A]">Diurutkan berdasarkan volume tiket & order</span>
-                </div>
-
-                <div class="space-y-5">
-                    @foreach($eventRankings as $rankIndex => $ev)
-                        <div class="border {{ $rankIndex === 0 ? 'border-[#6B3F1E] bg-[#F3EAD8]/40' : 'border-[#E3D9C9] bg-[#FAF6EE]' }} p-4 space-y-3">
-                            <div class="flex flex-wrap items-start justify-between gap-3">
-                                <div class="space-y-1">
-                                    <div class="flex items-center gap-2">
-                                        <span class="px-2.5 py-0.5 text-xs font-bold uppercase tracking-wider {{ $rankIndex === 0 ? 'bg-[#6B3F1E] text-[#FAF6EE]' : 'bg-[#E3D9C9] text-[#2A211A]' }}">
-                                            Peringkat #{{ $rankIndex + 1 }} {{ $rankIndex === 0 ? '— Paling Sering Dipesan' : '' }}
-                                        </span>
-                                        <span class="text-xs text-[#6E635A] tabular-nums">
-                                            Tarif Tetap: Rp {{ number_format($ev['ticket_price'], 0, ',', '.') }}/tiket
-                                        </span>
-                                    </div>
-                                    <h3 class="font-serif text-lg font-bold text-[#2A211A]">
-                                        <a href="{{ route('admin.transactions.index', ['event_id' => $ev['event_id']]) }}#tabel-rincian-transaksi" class="hover:text-[#6B3F1E]">
-                                            {{ $ev['title'] }}
-                                        </a>
-                                    </h3>
-                                </div>
-
-                                <div class="text-right tabular-nums">
-                                    <span class="font-serif text-xl font-bold text-[#6B3F1E] block">
-                                        Rp {{ number_format($ev['revenue'], 0, ',', '.') }}
-                                    </span>
-                                    <span class="text-xs text-[#6E635A]">
-                                        {{ $ev['revenue_share_pct'] }}% dari total pendapatan
-                                    </span>
-                                </div>
-                            </div>
-
-                            <div class="grid grid-cols-2 sm:grid-cols-4 gap-3 pt-2 border-t border-[#E3D9C9] text-xs tabular-nums">
-                                <div>
-                                    <span class="text-[#6E635A] block">Frekuensi Order</span>
-                                    <strong class="text-sm text-[#2A211A]">{{ $ev['total_orders'] }}x Dipesan ({{ $ev['paid_orders'] }} Lunas)</strong>
-                                </div>
-                                <div>
-                                    <span class="text-[#6E635A] block">Tiket Terjual</span>
-                                    <strong class="text-sm text-[#4A6B3A]">{{ $ev['tickets_sold'] }} Tiket Lunas</strong>
-                                </div>
-                                <div>
-                                    <span class="text-[#6E635A] block">Pemesan Unik</span>
-                                    <strong class="text-sm text-[#2A211A]">{{ $ev['unique_buyers'] }} Pemesan</strong>
-                                </div>
-                                <div>
-                                    <span class="text-[#6E635A] block">Rata-rata Rombongan</span>
-                                    <strong class="text-sm text-[#2A211A]">{{ $ev['avg_tickets_per_order'] }} Tiket / Order</strong>
-                                </div>
-                            </div>
-
-                            <div class="space-y-2 pt-1 text-xs tabular-nums">
-                                <div>
-                                    <div class="flex justify-between mb-1">
-                                        <span class="text-[#6E635A]">Pangsa Penjualan Tiket ({{ $ev['tickets_sold'] }} tiket)</span>
-                                        <strong class="text-[#2A211A]">{{ $ev['ticket_share_pct'] }}%</strong>
-                                    </div>
-                                    <div class="w-full h-2.5 bg-[#FFFFFF] border border-[#E3D9C9]">
-                                        <div class="h-full bg-[#6B3F1E]" style="width: {{ min(100, $ev['ticket_share_pct']) }}%"></div>
-                                    </div>
-                                </div>
-
-                                <div>
-                                    <div class="flex justify-between mb-1">
-                                        <span class="text-[#6E635A]">Pangsa Frekuensi Transaksi ({{ $ev['total_orders'] }} order)</span>
-                                        <strong class="text-[#2A211A]">{{ $ev['order_share_pct'] }}%</strong>
-                                    </div>
-                                    <div class="w-full h-2 bg-[#FFFFFF] border border-[#E3D9C9]">
-                                        <div class="h-full bg-[#C8A24A]" style="width: {{ min(100, $ev['order_share_pct']) }}%"></div>
-                                    </div>
-                                </div>
+                                <span class="block text-xs text-[#6E635A] mt-0.5">Terverifikasi</span>
                             </div>
                         </div>
-                    @endforeach
+                    </div>
+
+                    <!-- KPI 2: White Card — Total Orders -->
+                    <div class="rounded-2xl bg-[#FFFFFF] border border-[#E3D9C9] p-5 flex flex-col justify-between shadow-2xs">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="text-xs font-semibold text-[#6E635A]">Total Pesanan Masuk</span>
+                            <span class="w-9 h-9 rounded-xl bg-[#FAF6EE] border border-[#E3D9C9] text-[#6B3F1E] inline-flex items-center justify-center shrink-0">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M3 3h2l.4 2M7 13h10l4-8H5.4M7 13L5.4 5M7 13l-1.4 5.6A1 1 0 006.6 20h10.8a1 1 0 001-.8L20 13M9 21a1 1 0 100-2 1 1 0 000 2zm8 0a1 1 0 100-2 1 1 0 000 2z"></path>
+                                </svg>
+                            </span>
+                        </div>
+                        <div class="mt-4 flex items-end justify-between gap-2">
+                            <div>
+                                <span class="font-serif text-2xl font-bold text-[#2A211A] tabular-nums tracking-tight block">
+                                    {{ number_format($allOrders->count(), 0, ',', '.') }} Order
+                                </span>
+                                <span class="text-xs text-[#6E635A] mt-0.5 block tabular-nums">
+                                    {{ $pendingOrders->count() }} pending &bull; {{ $voidOrders->count() }} batal
+                                </span>
+                            </div>
+                            <div class="text-right shrink-0">
+                                <span class="inline-block px-2 py-0.5 rounded-md bg-[#C8A24A]/20 text-[#6B3F1E] text-xs font-bold tabular-nums">
+                                    {{ $overallConversionPct }}% Rasio
+                                </span>
+                                <span class="block text-xs text-[#6E635A] mt-0.5">Konversi lunas</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- KPI 3: White Card — Total Tickets & Visitors -->
+                    <div class="rounded-2xl bg-[#FFFFFF] border border-[#E3D9C9] p-5 flex flex-col justify-between shadow-2xs">
+                        <div class="flex items-center justify-between gap-2">
+                            <span class="text-xs font-semibold text-[#6E635A]">Total Tiket &amp; Peserta</span>
+                            <span class="w-9 h-9 rounded-xl bg-[#FAF6EE] border border-[#E3D9C9] text-[#6B3F1E] inline-flex items-center justify-center shrink-0">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M17 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"></path>
+                                    <circle cx="9" cy="7" r="4"></circle>
+                                    <path stroke-linecap="round" stroke-linejoin="round" d="M23 21v-2a4 4 0 00-3-3.87M16 3.13a4 4 0 010 7.75"></path>
+                                </svg>
+                            </span>
+                        </div>
+                        <div class="mt-4 flex items-end justify-between gap-2">
+                            <div>
+                                <span class="font-serif text-2xl font-bold text-[#2A211A] tabular-nums tracking-tight block">
+                                    {{ number_format($grandTotalTickets, 0, ',', '.') }} Tiket
+                                </span>
+                                <span class="text-xs text-[#6E635A] mt-0.5 block tabular-nums">
+                                    Dari {{ $buyerSummaries->count() }} pemesan unik
+                                </span>
+                            </div>
+                            <div class="text-right shrink-0">
+                                <span class="inline-block px-2 py-0.5 rounded-md bg-[#4A6B3A]/15 text-[#4A6B3A] text-xs font-bold tabular-nums">
+                                    +{{ $registeredBuyerPct }}% Akun
+                                </span>
+                                <span class="block text-xs text-[#6E635A] mt-0.5">Terdaftar</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Sub-Row 1B: Revenue Spline Analytics (8/12) + Semi-Circle Conversion Gauge (4/12) -->
+                <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 flex-1">
+                    <!-- Left 8/12: Revenue Analytics Dual-Line Spline Chart -->
+                    <div class="lg:col-span-8 rounded-2xl bg-[#FFFFFF] border border-[#E3D9C9] p-6 flex flex-col justify-between shadow-2xs">
+                        <div class="flex flex-wrap items-start justify-between gap-3">
+                            <div>
+                                <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold block">
+                                    Revenue Analytics &bull; Laporan Bulanan
+                                </span>
+                                <h2 class="font-serif text-lg font-bold text-[#2A211A] mt-0.5">
+                                    Grafik Tren Pendapatan & Penjualan Tiket Bulanan (6 Bulan Terakhir)
+                                </h2>
+                                <div class="flex flex-wrap items-center gap-4 text-xs text-[#6E635A] mt-1.5">
+                                    <span class="inline-flex items-center gap-1.5 font-semibold text-[#6B3F1E]">
+                                        <span class="w-4 h-0.5 bg-[#6B3F1E] inline-block"></span>
+                                        <span>Pendapatan Lunas (IDR)</span>
+                                    </span>
+                                    <span class="inline-flex items-center gap-1.5 font-semibold text-[#C8A24A]">
+                                        <span class="w-4 h-0.5 border-b-2 border-dashed border-[#C8A24A] inline-block"></span>
+                                        <span>Volume Tiket Terjual</span>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <!-- Quick Period Filter Pill -->
+                            <form action="{{ route('admin.transactions.index') }}" method="GET" class="shrink-0">
+                                <select name="month"
+                                        onchange="this.form.submit()"
+                                        aria-label="Pilih Periode Bulan"
+                                        class="px-3 py-1.5 rounded-lg bg-[#6B3F1E] text-[#FAF6EE] text-xs font-semibold cursor-pointer border border-[#6B3F1E] focus:outline-none">
+                                    <option value="" @selected($selectedMonth === '')>6 Bulan Terakhir (Semua)</option>
+                                    @foreach($monthlyReport->reverse() as $mOpt)
+                                        <option value="{{ $mOpt['month_key'] }}" @selected($selectedMonth === $mOpt['month_key'])>
+                                            {{ $mOpt['month_label'] }}
+                                        </option>
+                                    @endforeach
+                                </select>
+                            </form>
+                        </div>
+
+                        <!-- Dual-Line Smooth Spline SVG Chart -->
+                        <div class="relative mt-4 pt-3">
+                            <svg class="w-full h-52 overflow-visible" viewBox="0 0 610 175" role="img" aria-label="Grafik Kurva Tren Pendapatan dan Tiket Bulanan">
+                                <defs>
+                                    <linearGradient id="heritageRevenueGrad" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="0%" stop-color="#C8A24A" stop-opacity="0.30"/>
+                                        <stop offset="100%" stop-color="#C8A24A" stop-opacity="0.0"/>
+                                    </linearGradient>
+                                </defs>
+
+                                <!-- Horizontal Dashed Gridlines & Y-Axis Scale -->
+                                <line x1="48" y1="28" x2="585" y2="28" stroke="#E3D9C9" stroke-dasharray="3 3"/>
+                                <line x1="48" y1="66" x2="585" y2="66" stroke="#E3D9C9" stroke-dasharray="3 3"/>
+                                <line x1="48" y1="104" x2="585" y2="104" stroke="#E3D9C9" stroke-dasharray="3 3"/>
+                                <line x1="48" y1="142" x2="585" y2="142" stroke="#E3D9C9"/>
+
+                                <text x="0" y="32" fill="#6E635A" font-size="10" class="tabular-nums">{{ number_format($maxMonthlyRevenue / 1000, 0, ',', '.') }}k</text>
+                                <text x="0" y="70" fill="#6E635A" font-size="10" class="tabular-nums">{{ number_format(($maxMonthlyRevenue * 0.66) / 1000, 0, ',', '.') }}k</text>
+                                <text x="0" y="108" fill="#6E635A" font-size="10" class="tabular-nums">{{ number_format(($maxMonthlyRevenue * 0.33) / 1000, 0, ',', '.') }}k</text>
+                                <text x="0" y="145" fill="#6E635A" font-size="10">0</text>
+
+                                <!-- Shaded Area under Revenue Curve -->
+                                @if($revenueAreaPath !== '')
+                                    <path d="{{ $revenueAreaPath }}" fill="url(#heritageRevenueGrad)"/>
+                                @endif
+
+                                <!-- Dashed Ticket Volume Curve (#C8A24A) -->
+                                @if($ticketSplinePath !== '')
+                                    <path d="{{ $ticketSplinePath }}" fill="none" stroke="#C8A24A" stroke-width="2.2" stroke-dasharray="5 5" stroke-linecap="round"/>
+                                @endif
+
+                                <!-- Solid Revenue Curve (#6B3F1E) -->
+                                @if($revenueSplinePath !== '')
+                                    <path d="{{ $revenueSplinePath }}" fill="none" stroke="#6B3F1E" stroke-width="3" stroke-linecap="round"/>
+                                @endif
+
+                                <!-- Peak Point Vertical Guide & Callout Badge -->
+                                @php
+                                    $calloutX = min(520, max(95, $peakPoint['x']));
+                                    $calloutY = max(2, $peakPoint['y'] - 38);
+                                @endphp
+                                <line x1="{{ $peakPoint['x'] }}" y1="{{ $peakPoint['y'] }}" x2="{{ $peakPoint['x'] }}" y2="{{ $yBottom }}" stroke="#C8A24A" stroke-dasharray="3 3"/>
+                                <rect x="{{ $calloutX - 52 }}" y="{{ $calloutY - 12 }}" width="104" height="30" rx="6" fill="#FFFFFF" stroke="#D8C5A8" stroke-width="1.2"/>
+                                <text x="{{ $calloutX }}" y="{{ $calloutY - 1 }}" text-anchor="middle" fill="#6E635A" font-size="8.5">Puncak ({{ $peakPoint['data']['short_label'] ?? '' }})</text>
+                                <text x="{{ $calloutX }}" y="{{ $calloutY + 11 }}" text-anchor="middle" fill="#6B3F1E" font-size="10" font-weight="bold">Rp {{ number_format($peakPoint['data']['revenue'] ?? 0, 0, ',', '.') }}</text>
+
+                                <!-- Data Nodes & X-Axis Clickable Labels -->
+                                @foreach($revPoints as $idx => $pt)
+                                    @php
+                                        $mData = $pt['data'];
+                                        $isCurrentFilter = ($selectedMonth === $mData['month_key']);
+                                    @endphp
+                                    <a href="{{ route('admin.transactions.index', ['month' => $isCurrentFilter ? '' : $mData['month_key']]) }}#tabel-rincian-transaksi">
+                                        <circle cx="{{ $pt['x'] }}"
+                                                cy="{{ $pt['y'] }}"
+                                                r="{{ $idx === $peakIdx || $isCurrentFilter ? '5' : '3.8' }}"
+                                                fill="{{ $isCurrentFilter ? '#6B3F1E' : '#FAF6EE' }}"
+                                                stroke="#6B3F1E"
+                                                stroke-width="2.5">
+                                            <title>{{ $mData['month_label'] }}: Rp {{ number_format($mData['revenue'], 0, ',', '.') }} ({{ $mData['tickets_sold'] }} tiket, {{ $mData['total_orders'] }} order)</title>
+                                        </circle>
+                                        <text x="{{ $pt['x'] }}"
+                                              y="164"
+                                              text-anchor="middle"
+                                              fill="{{ $isCurrentFilter || $idx === $peakIdx ? '#6B3F1E' : '#6E635A' }}"
+                                              font-weight="{{ $isCurrentFilter || $idx === $peakIdx ? 'bold' : 'normal' }}"
+                                              font-size="10.5">
+                                            {{ $mData['short_label'] }}
+                                        </text>
+                                    </a>
+                                @endforeach
+                            </svg>
+                        </div>
+                    </div>
+
+                    <!-- Right 4/12: Monthly Target & Conversion Semi-Circle Gauge -->
+                    <div class="lg:col-span-4 rounded-2xl bg-[#FFFFFF] border border-[#E3D9C9] p-6 flex flex-col justify-between shadow-2xs">
+                        <div class="flex items-center justify-between">
+                            <div>
+                                <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold block">Target &amp; Rasio</span>
+                                <h3 class="font-serif text-lg font-bold text-[#2A211A]">Realisasi Konversi</h3>
+                            </div>
+                            <span class="px-2.5 py-1 rounded-md bg-[#F3EAD8] text-[#6B3F1E] text-xs font-bold tabular-nums">
+                                {{ $paidOrders->count() }}/{{ $allOrders->count() }} Order
+                            </span>
+                        </div>
+
+                        <!-- Semi-Circle Arch Gauge -->
+                        <div class="flex flex-col items-center my-2">
+                            <div class="relative w-48 h-28 flex items-end justify-center overflow-hidden">
+                                <svg class="w-48 h-48" viewBox="0 0 100 100" role="img" aria-label="Gauge Konversi Pelunasan {{ $overallConversionPct }}%">
+                                    <path d="M 12 52 A 38 38 0 0 1 88 52" fill="none" stroke="#F3EAD8" stroke-width="10" stroke-linecap="round"/>
+                                    <path d="M 12 52 A 38 38 0 0 1 88 52" fill="none" stroke="#6B3F1E" stroke-width="10" stroke-linecap="round" stroke-dasharray="{{ $gaugeDash }} 125"/>
+                                </svg>
+                                <div class="absolute bottom-0.5 text-center">
+                                    <span class="font-serif text-2xl font-bold text-[#2A211A] tabular-nums block">{{ $overallConversionPct }}%</span>
+                                    <span class="text-xs font-semibold text-[#4A6B3A]">Rasio Pelunasan</span>
+                                </div>
+                            </div>
+
+                            <p class="text-xs font-bold text-[#2A211A] mt-3">
+                                {{ $overallConversionPct >= 70 ? 'Performa Konversi Sangat Baik!' : 'Pantau Tagihan Menunggu Pembayaran' }}
+                            </p>
+                            <p class="text-xs text-[#6E635A] text-center mt-1 leading-relaxed">
+                                {{ $paidOrders->count() }} pesanan lunas menghasilkan {{ $grandTotalTickets }} e-ticket aktif dari total {{ $allOrders->count() }} transaksi.
+                            </p>
+                        </div>
+
+                        <!-- Bottom 2-Column Heritage Summary Box -->
+                        <div class="grid grid-cols-2 rounded-xl bg-[#F3EAD8]/75 border border-[#D8C5A8] p-3 text-center divide-x divide-[#D8C5A8]">
+                            <div class="px-1">
+                                <span class="text-xs text-[#6E635A] block">Tagihan Pending</span>
+                                <strong class="text-xs font-bold text-[#B8860B] tabular-nums mt-0.5 block">
+                                    Rp {{ number_format((int) $pendingOrders->sum('total_amount'), 0, ',', '.') }}
+                                </strong>
+                            </div>
+                            <div class="px-1">
+                                <span class="text-xs text-[#6E635A] block">Realisasi Lunas</span>
+                                <strong class="text-xs font-bold text-[#6B3F1E] tabular-nums mt-0.5 block">
+                                    Rp {{ number_format($grandTotalRevenue, 0, ',', '.') }}
+                                </strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Right 3/12 Full-Height Card: Top Categories / Peringkat Event Paling Sering Dipesan -->
+            <div class="xl:col-span-3 rounded-2xl bg-[#FFFFFF] border border-[#E3D9C9] p-6 flex flex-col justify-between shadow-2xs">
+                <div>
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold">Top Categories</span>
+                        <a href="#rincian-peringkat-event" class="text-xs font-semibold text-[#6B3F1E] hover:underline">Lihat Detail</a>
+                    </div>
+                    <h2 class="font-serif text-lg font-bold text-[#2A211A] mt-0.5">
+                        Peringkat Event Paling Sering Dipesan
+                    </h2>
+                </div>
+
+                <!-- SVG Ring Donut Chart with Center Total Revenue -->
+                <div class="relative flex items-center justify-center my-4">
+                    <svg class="w-44 h-44 -rotate-90" viewBox="0 0 36 36" role="img" aria-label="Grafik Donat Pendapatan per Event Tour">
+                        <circle cx="18" cy="18" r="13.5" fill="none" stroke="#F3EAD8" stroke-width="4.8"></circle>
+                        @foreach($eventDonutSegments as $seg)
+                            <circle cx="18"
+                                    cy="18"
+                                    r="13.5"
+                                    fill="none"
+                                    stroke="{{ $seg['color'] }}"
+                                    stroke-width="4.8"
+                                    stroke-dasharray="{{ $seg['dash_array'] }}"
+                                    stroke-dashoffset="{{ $seg['dash_offset'] }}"></circle>
+                        @endforeach
+                    </svg>
+                    <div class="absolute inset-0 flex flex-col items-center justify-center text-center px-4 pointer-events-none">
+                        <span class="text-xs text-[#6E635A]">Total Penjualan</span>
+                        <strong class="font-serif text-sm font-bold text-[#2A211A] tabular-nums mt-0.5">
+                            Rp {{ number_format($grandTotalRevenue, 0, ',', '.') }}
+                        </strong>
+                    </div>
+                </div>
+
+                <!-- Event Breakdown List -->
+                <div class="space-y-3 pt-3 border-t border-[#E3D9C9]">
+                    @forelse($eventDonutSegments as $seg)
+                        <div class="flex items-start justify-between gap-2 text-xs">
+                            <a href="{{ route('admin.transactions.index', ['event_id' => $seg['event_id']]) }}#tabel-rincian-transaksi"
+                               class="inline-flex items-start gap-2 min-w-0 hover:text-[#6B3F1E]">
+                                <span class="w-2.5 h-2.5 rounded-xs shrink-0 mt-1" style="background-color: {{ $seg['color'] }}"></span>
+                                <span class="min-w-0">
+                                    <strong class="text-[#2A211A] font-medium block truncate" title="{{ $seg['title'] }}">{{ $seg['title'] }}</strong>
+                                    <span class="text-[#6E635A] tabular-nums">{{ $seg['total_orders'] }}x order &bull; {{ $seg['tickets_sold'] }} tiket</span>
+                                </span>
+                            </a>
+                            <div class="text-right tabular-nums shrink-0">
+                                <strong class="text-[#6B3F1E] block">Rp {{ number_format($seg['revenue'], 0, ',', '.') }}</strong>
+                                <span class="text-[#6E635A]">{{ $seg['pct'] }}%</span>
+                            </div>
+                        </div>
+                    @empty
+                        <p class="text-xs text-[#6E635A] text-center py-2">Belum ada data event.</p>
+                    @endforelse
                 </div>
             </div>
 
-            <!-- Right 5/12: Payment Channel Distribution & Buyer Segment Summary -->
-            <div class="lg:col-span-5 space-y-6">
-                <div class="border border-[#E3D9C9] bg-[#FFFFFF] p-6 space-y-4">
-                    <div class="border-b border-[#E3D9C9] pb-3">
-                        <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold block">
-                            Kanal Pembayaran Midtrans
+        </div>
+
+        <!-- ================================================================= -->
+        <!-- BENTO ROW 2: Top Buyers (3/12) + 5-Step Funnel (6/12) + Channels  -->
+        <!-- ================================================================= -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+
+            <!-- Left 3/12: Active User / 5 Pemesan dengan Kontribusi Tertinggi -->
+            <div class="lg:col-span-3 rounded-2xl bg-[#FFFFFF] border border-[#E3D9C9] p-6 flex flex-col justify-between shadow-2xs">
+                <div>
+                    <div class="flex items-start justify-between gap-2">
+                        <div>
+                            <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold block">Loyalitas Pengunjung</span>
+                            <h2 class="font-serif text-lg font-bold text-[#2A211A] mt-0.5">5 Pemesan Kontribusi Tertinggi</h2>
+                        </div>
+                        <span class="px-2 py-0.5 rounded-md bg-[#4A6B3A]/15 text-[#4A6B3A] text-xs font-bold tabular-nums shrink-0">
+                            {{ $buyerSummaries->count() }} Pemesan
                         </span>
-                        <h2 class="font-serif text-xl font-bold text-[#2A211A] mt-0.5">
-                            Distribusi Metode Pembayaran Lunas
-                        </h2>
                     </div>
 
-                    <div class="space-y-4">
-                        @forelse($paymentChannelStats as $stat)
-                            <div class="space-y-1.5 text-xs tabular-nums">
-                                <div class="flex items-center justify-between">
-                                    <strong class="text-sm text-[#2A211A]">{{ $stat['channel'] }}</strong>
-                                    <span class="font-bold text-[#6B3F1E]">
-                                        Rp {{ number_format($stat['revenue'], 0, ',', '.') }} ({{ $stat['share_pct'] }}%)
+                    <div class="space-y-3.5 mt-4">
+                        @php
+                            $buyerBarColors = ['#6B3F1E', '#A67C52', '#C8A24A', '#4A6B3A', '#8C6239'];
+                        @endphp
+                        @forelse($buyerSummaries->take(5) as $idx => $buyer)
+                            @php
+                                $buyerSharePct = $grandTotalRevenue > 0
+                                    ? min(100, (int) round(($buyer['total_spent'] / $grandTotalRevenue) * 100))
+                                    : 0;
+                                $barColor = $buyerBarColors[$idx % count($buyerBarColors)];
+                            @endphp
+                            <div class="space-y-1 text-xs">
+                                <div class="flex items-center justify-between gap-2">
+                                    <span class="font-semibold text-[#2A211A] truncate" title="{{ $buyer['buyer_name'] }} ({{ $buyer['buyer_email'] }})">
+                                        #{{ $idx + 1 }} {{ $buyer['buyer_name'] }}
                                     </span>
+                                    <strong class="text-[#6B3F1E] tabular-nums shrink-0">{{ $buyerSharePct }}%</strong>
                                 </div>
-                                <div class="w-full h-2.5 bg-[#FAF6EE] border border-[#E3D9C9]">
-                                    <div class="h-full bg-[#4A6B3A]" style="width: {{ min(100, max(6, $stat['share_pct'])) }}%"></div>
+                                <div class="w-full h-2 rounded-full bg-[#F3EAD8] overflow-hidden">
+                                    <div class="h-full rounded-full" style="width: {{ max(8, $buyerSharePct) }}%; background-color: {{ $barColor }}"></div>
                                 </div>
-                                <div class="text-[#6E635A] flex justify-between">
-                                    <span>{{ $stat['orders_count'] }} transaksi lunas</span>
-                                    <span>{{ $stat['tickets_count'] }} tiket diterbitkan</span>
+                                <div class="flex justify-between text-[#6E635A] tabular-nums">
+                                    <span>{{ $buyer['total_tickets_all'] }} tiket ({{ $buyer['total_orders'] }}x order)</span>
+                                    <span>Rp {{ number_format($buyer['total_spent'], 0, ',', '.') }}</span>
+                                </div>
+                            </div>
+                        @empty
+                            <p class="text-xs text-[#6E635A]">Belum ada data pemesan.</p>
+                        @endforelse
+                    </div>
+                </div>
+
+                <div class="pt-3 mt-3 border-t border-[#E3D9C9] flex items-center justify-between text-xs text-[#6E635A]">
+                    <span>Pemesan #1: <strong class="text-[#2A211A]">{{ $topBuyer['buyer_name'] ?? '-' }}</strong></span>
+                    <a href="#top-10-pemesan-section" class="text-[#6B3F1E] font-semibold hover:underline">Top 10 &rarr;</a>
+                </div>
+            </div>
+
+            <!-- Middle 6/12: Conversion Rate 5-Column Funnel -->
+            <div class="lg:col-span-6 rounded-2xl bg-[#FFFFFF] border border-[#E3D9C9] p-6 flex flex-col justify-between shadow-2xs">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+                    <div>
+                        <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold block">Conversion Funnel</span>
+                        <h2 class="font-serif text-lg font-bold text-[#2A211A] mt-0.5">Alur Konversi Pemesanan &amp; E-Ticket</h2>
+                    </div>
+                    <span class="px-3 py-1 rounded-lg bg-[#F3EAD8] border border-[#D8C5A8] text-[#6B3F1E] text-xs font-semibold">
+                        {{ $reportPeriodLabel }}
+                    </span>
+                </div>
+
+                <!-- 5 Funnel Steps Matching Reference Image -->
+                <div class="grid grid-cols-2 sm:grid-cols-5 divide-y sm:divide-y-0 sm:divide-x divide-[#E3D9C9] gap-2 items-end pt-2">
+                    <!-- Step 1: Tiket Diminta -->
+                    <div class="px-2 pt-2 sm:pt-0 flex flex-col justify-between h-48">
+                        <div>
+                            <span class="text-xs text-[#6E635A] block leading-tight">Total Tiket Diminta</span>
+                            <strong class="font-serif text-xl font-bold text-[#2A211A] tabular-nums block mt-1">{{ $totalTicketsRequestedAll }}</strong>
+                            <span class="inline-block px-1.5 py-0.5 rounded bg-[#4A6B3A]/15 text-[#4A6B3A] text-xs font-bold mt-1">100%</span>
+                        </div>
+                        <div class="w-full h-24 rounded-t-xl bg-[#F3EAD8] border-t-2 border-[#D8C5A8]"></div>
+                    </div>
+
+                    <!-- Step 2: Order Dibuat -->
+                    <div class="px-2 pt-2 sm:pt-0 flex flex-col justify-between h-48">
+                        <div>
+                            <span class="text-xs text-[#6E635A] block leading-tight">Pesanan Dibuat</span>
+                            <strong class="font-serif text-xl font-bold text-[#2A211A] tabular-nums block mt-1">{{ $allOrders->count() }}</strong>
+                            <span class="inline-block px-1.5 py-0.5 rounded bg-[#C8A24A]/20 text-[#6B3F1E] text-xs font-bold mt-1">Order</span>
+                        </div>
+                        <div class="w-full h-20 rounded-t-xl bg-[#E8D5B5] border-t-2 border-[#C8A24A]"></div>
+                    </div>
+
+                    <!-- Step 3: Order Lunas -->
+                    <div class="px-2 pt-2 sm:pt-0 flex flex-col justify-between h-48">
+                        <div>
+                            <span class="text-xs text-[#6E635A] block leading-tight">Transaksi Lunas</span>
+                            <strong class="font-serif text-xl font-bold text-[#2A211A] tabular-nums block mt-1">{{ $paidOrders->count() }}</strong>
+                            <span class="inline-block px-1.5 py-0.5 rounded bg-[#4A6B3A]/15 text-[#4A6B3A] text-xs font-bold mt-1">{{ $overallConversionPct }}%</span>
+                        </div>
+                        <div class="w-full h-16 rounded-t-xl bg-[#D9B87C] border-t-2 border-[#A67C52]"></div>
+                    </div>
+
+                    <!-- Step 4: Tiket Terbit -->
+                    <div class="px-2 pt-2 sm:pt-0 flex flex-col justify-between h-48">
+                        <div>
+                            <span class="text-xs text-[#6E635A] block leading-tight">E-Ticket Terbit</span>
+                            <strong class="font-serif text-xl font-bold text-[#4A6B3A] tabular-nums block mt-1">{{ $grandTotalTickets }}</strong>
+                            <span class="inline-block px-1.5 py-0.5 rounded bg-[#4A6B3A]/15 text-[#4A6B3A] text-xs font-bold mt-1">Aktif</span>
+                        </div>
+                        <div class="w-full h-12 rounded-t-xl bg-[#A67C52] border-t-2 border-[#6B3F1E]"></div>
+                    </div>
+
+                    <!-- Step 5: Pending / Batal -->
+                    <div class="px-2 pt-2 sm:pt-0 flex flex-col justify-between h-48">
+                        <div>
+                            <span class="text-xs text-[#6E635A] block leading-tight">Pending / Batal</span>
+                            <strong class="font-serif text-xl font-bold text-[#8B2E1F] tabular-nums block mt-1">{{ $pendingOrders->count() + $voidOrders->count() }}</strong>
+                            <span class="inline-block px-1.5 py-0.5 rounded bg-[#8B2E1F]/15 text-[#8B2E1F] text-xs font-bold mt-1">{{ 100 - $overallConversionPct }}%</span>
+                        </div>
+                        <div class="w-full h-7 rounded-t-xl bg-[#6B3F1E]"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right 3/12: Payment Channel Distribution (Traffic Sources Stacked Bar Style) -->
+            <div class="lg:col-span-3 rounded-2xl bg-[#FFFFFF] border border-[#E3D9C9] p-6 flex flex-col justify-between shadow-2xs">
+                <div>
+                    <div class="flex items-center justify-between gap-2">
+                        <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold">Kanal Midtrans</span>
+                        <span class="text-xs text-[#6E635A] tabular-nums">{{ $paidOrders->count() }} Lunas</span>
+                    </div>
+                    <h2 class="font-serif text-lg font-bold text-[#2A211A] mt-0.5">
+                        Distribusi Metode Pembayaran Lunas
+                    </h2>
+
+                    <!-- Segmented Horizontal Stacked Bar -->
+                    @php
+                        $channelShades = ['#F3EAD8', '#D9B87C', '#A67C52', '#6B3F1E', '#4A6B3A'];
+                    @endphp
+                    <div class="flex gap-1 h-8 rounded-lg overflow-hidden my-4 border border-[#E3D9C9] bg-[#FAF6EE]">
+                        @forelse($paymentChannelStats as $cIdx => $stat)
+                            <div class="h-full transition-all"
+                                 style="width: {{ max(8, $stat['share_pct']) }}%; background-color: {{ $channelShades[$cIdx % count($channelShades)] }}"
+                                 title="{{ $stat['channel'] }}: {{ $stat['share_pct'] }}%"></div>
+                        @empty
+                            <div class="w-full h-full bg-[#F3EAD8]"></div>
+                        @endforelse
+                    </div>
+
+                    <div class="space-y-2.5 text-xs">
+                        @forelse($paymentChannelStats as $cIdx => $stat)
+                            <div class="flex items-center justify-between gap-2 tabular-nums">
+                                <span class="inline-flex items-center gap-2 text-[#2A211A] font-medium truncate">
+                                    <span class="w-2.5 h-2.5 rounded-xs border border-[#6B3F1E]/40 shrink-0"
+                                          style="background-color: {{ $channelShades[$cIdx % count($channelShades)] }}"></span>
+                                    <span class="truncate">{{ $stat['channel'] }}</span>
+                                </span>
+                                <div class="text-right shrink-0">
+                                    <strong class="text-[#2A211A]">{{ $stat['share_pct'] }}%</strong>
+                                    <span class="text-[#6E635A] block text-[11px]">Rp {{ number_format($stat['revenue'], 0, ',', '.') }}</span>
                                 </div>
                             </div>
                         @empty
@@ -363,40 +628,112 @@
                     </div>
                 </div>
 
-                <!-- Summary of Top Buyers Card -->
-                <div class="border border-[#E3D9C9] bg-[#FFFFFF] p-6 space-y-4">
-                    <div class="border-b border-[#E3D9C9] pb-3">
-                        <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold block">
-                            Loyalitas & Segmen Pengunjung
-                        </span>
-                        <h2 class="font-serif text-xl font-bold text-[#2A211A] mt-0.5">
-                            5 Pemesan dengan Kontribusi Tertinggi
-                        </h2>
-                    </div>
+                <div class="pt-3 mt-3 border-t border-[#E3D9C9] text-xs text-[#6E635A] flex justify-between">
+                    <span>Total Tiket Lunas</span>
+                    <strong class="text-[#4A6B3A] tabular-nums">{{ $grandTotalTickets }} E-Ticket</strong>
+                </div>
+            </div>
 
-                    <div class="divide-y divide-[#E3D9C9]">
-                        @foreach($buyerSummaries->take(5) as $idx => $buyer)
-                            <div class="py-3 flex items-start justify-between gap-3 text-xs">
+        </div>
+
+        <!-- ================================================================= -->
+        <!-- 3. Rincian Tabel Bulanan & Peringkat Event Lengkap                -->
+        <!-- ================================================================= -->
+        <div id="rincian-peringkat-event" class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <!-- Left 7/12: Detailed Monthly Breakdown Table -->
+            <div class="lg:col-span-7 rounded-2xl border border-[#E3D9C9] bg-[#FFFFFF] p-6 space-y-4 shadow-2xs">
+                <div class="border-b border-[#E3D9C9] pb-3 flex items-center justify-between gap-2">
+                    <div>
+                        <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold block">Rekapitulasi Tabel Bulanan</span>
+                        <h3 class="font-serif text-xl font-bold text-[#2A211A] mt-0.5">Rincian Performa Transaksi per Bulan</h3>
+                    </div>
+                    <span class="text-xs text-[#6E635A]">Klik bulan untuk memfilter tabel bawah</span>
+                </div>
+
+                <div class="overflow-x-auto rounded-xl border border-[#E3D9C9]">
+                    <table class="w-full text-sm text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-[#E3D9C9] bg-[#FAF6EE] text-xs uppercase tracking-wider text-[#6E635A]">
+                                <th class="py-3 px-3.5 font-semibold">Periode Bulan</th>
+                                <th class="py-3 px-3.5 font-semibold text-right">Order</th>
+                                <th class="py-3 px-3.5 font-semibold text-right">Status</th>
+                                <th class="py-3 px-3.5 font-semibold text-right">Tiket</th>
+                                <th class="py-3 px-3.5 font-semibold text-right">Pendapatan Lunas</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-[#E3D9C9]">
+                            @foreach($monthlyReport->reverse() as $m)
+                                <tr class="hover:bg-[#FAF6EE]/60 {{ $selectedMonth === $m['month_key'] ? 'bg-[#F3EAD8]/60' : '' }}">
+                                    <td class="py-3 px-3.5 font-serif font-bold text-[#2A211A]">
+                                        <a href="{{ route('admin.transactions.index', ['month' => $m['month_key']]) }}#tabel-rincian-transaksi"
+                                           class="hover:text-[#6B3F1E] underline-offset-4 hover:underline">
+                                            {{ $m['month_label'] }}
+                                        </a>
+                                    </td>
+                                    <td class="py-3 px-3.5 text-right tabular-nums font-semibold">{{ $m['total_orders'] }}</td>
+                                    <td class="py-3 px-3.5 text-right tabular-nums text-xs">
+                                        <span class="text-[#4A6B3A] font-semibold">{{ $m['paid_orders'] }} Lunas</span> &bull;
+                                        <span class="text-[#B8860B]">{{ $m['pending_orders'] }} Pending</span>
+                                    </td>
+                                    <td class="py-3 px-3.5 text-right tabular-nums font-bold text-[#2A211A]">{{ $m['tickets_sold'] }}</td>
+                                    <td class="py-3 px-3.5 text-right tabular-nums font-serif font-bold text-[#6B3F1E]">
+                                        Rp {{ number_format($m['revenue'], 0, ',', '.') }}
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                        <tfoot>
+                            <tr class="border-t-2 border-[#6B3F1E] bg-[#F3EAD8] font-bold text-[#2A211A] text-xs">
+                                <td class="py-3 px-3.5 uppercase tracking-wider">Total Akumulasi</td>
+                                <td class="py-3 px-3.5 text-right tabular-nums">{{ $allOrders->count() }}</td>
+                                <td class="py-3 px-3.5 text-right tabular-nums">{{ $paidOrders->count() }} Lunas / {{ $pendingOrders->count() }} Pending</td>
+                                <td class="py-3 px-3.5 text-right tabular-nums">{{ $grandTotalTickets }} Tiket</td>
+                                <td class="py-3 px-3.5 text-right tabular-nums font-serif text-sm text-[#6B3F1E]">
+                                    Rp {{ number_format($grandTotalRevenue, 0, ',', '.') }}
+                                </td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Right 5/12: Detailed Event Ranking Cards -->
+            <div class="lg:col-span-5 rounded-2xl border border-[#E3D9C9] bg-[#FFFFFF] p-6 space-y-4 shadow-2xs">
+                <div class="border-b border-[#E3D9C9] pb-3">
+                    <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold block">Analisis Program Tour</span>
+                    <h3 class="font-serif text-xl font-bold text-[#2A211A] mt-0.5">Rincian Popularitas per Event</h3>
+                </div>
+
+                <div class="space-y-3">
+                    @foreach($eventRankings as $rankIndex => $ev)
+                        <div class="rounded-xl border {{ $rankIndex === 0 ? 'border-[#6B3F1E] bg-[#F3EAD8]/40' : 'border-[#E3D9C9] bg-[#FAF6EE]' }} p-3.5 space-y-2">
+                            <div class="flex items-start justify-between gap-2">
                                 <div>
-                                    <div class="flex items-center gap-1.5">
-                                        <span class="font-serif font-bold text-[#6B3F1E]">#{{ $idx + 1 }}</span>
-                                        <strong class="text-sm text-[#2A211A]">{{ $buyer['buyer_name'] }}</strong>
-                                    </div>
-                                    <span class="text-[#6E635A] block">{{ $buyer['buyer_email'] }} &bull; {{ $buyer['is_registered'] ? 'Akun Terdaftar' : 'Tamu' }}</span>
+                                    <span class="px-2 py-0.5 rounded text-xs font-bold uppercase {{ $rankIndex === 0 ? 'bg-[#6B3F1E] text-[#FAF6EE]' : 'bg-[#E3D9C9] text-[#2A211A]' }}">
+                                        #{{ $rankIndex + 1 }} {{ $rankIndex === 0 ? 'Terlaris' : '' }}
+                                    </span>
+                                    <h4 class="font-serif text-sm font-bold text-[#2A211A] mt-1">
+                                        <a href="{{ route('admin.transactions.index', ['event_id' => $ev['event_id']]) }}#tabel-rincian-transaksi" class="hover:text-[#6B3F1E]">
+                                            {{ $ev['title'] }}
+                                        </a>
+                                    </h4>
                                 </div>
                                 <div class="text-right tabular-nums shrink-0">
-                                    <strong class="text-sm text-[#6B3F1E] block">Rp {{ number_format($buyer['total_spent'], 0, ',', '.') }}</strong>
-                                    <span class="text-[#4A6B3A] font-semibold">{{ $buyer['total_tickets_all'] }} tiket ({{ $buyer['total_orders'] }}x order)</span>
+                                    <strong class="font-serif text-sm font-bold text-[#6B3F1E] block">Rp {{ number_format($ev['revenue'], 0, ',', '.') }}</strong>
+                                    <span class="text-xs text-[#6E635A]">{{ $ev['tickets_sold'] }} tiket ({{ $ev['ticket_share_pct'] }}%)</span>
                                 </div>
                             </div>
-                        @endforeach
-                    </div>
+                            <div class="w-full h-2 rounded-full bg-[#FFFFFF] border border-[#E3D9C9] overflow-hidden">
+                                <div class="h-full rounded-full bg-[#6B3F1E]" style="width: {{ min(100, max(6, $ev['ticket_share_pct'])) }}%"></div>
+                            </div>
+                        </div>
+                    @endforeach
                 </div>
             </div>
         </div>
 
         <!-- 4. Ringkasan Deskripsi Aktivitas Transaksi per Pemesan -->
-        <div class="border border-[#E3D9C9] bg-[#FFFFFF] p-6 space-y-4">
+        <div id="top-10-pemesan-section" class="rounded-2xl border border-[#E3D9C9] bg-[#FFFFFF] p-6 space-y-4 shadow-2xs">
             <div class="border-b border-[#E3D9C9] pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-2">
                 <div>
                     <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold block">
@@ -455,7 +792,7 @@
         </div>
 
         <!-- 5. Tabel Rincian & Deskripsi Lengkap Tiap Transaksi (Filterable) -->
-        <div id="tabel-rincian-transaksi" class="border border-[#E3D9C9] bg-[#FFFFFF] p-6 space-y-5">
+        <div id="tabel-rincian-transaksi" class="rounded-2xl border border-[#E3D9C9] bg-[#FFFFFF] p-6 space-y-5 shadow-2xs">
             <div class="border-b border-[#E3D9C9] pb-4 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                 <div>
                     <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold block">

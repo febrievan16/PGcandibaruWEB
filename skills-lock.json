@@ -37,6 +37,120 @@
       "skillPath": ".claude/skills/infer-conventions/SKILL.md",
       "computedHash": "61f49d8847b99b77e6a93888fdef5de2bcabdf8feded69fd110868d0faf2df76"
     },
+    "superior-accessibility": {
+      "source": "KodekaTeam/superior-skills",
+      "sourceType": "github",
+      "skillPath": "skills/superior-accessibility/SKILL.md",
+      "computedHash": "ff911e37bcf3d5a15bf50018c7103fda0ac8aff40f6d8ef34de67a901754786a"
+    },
+    "superior-api-security": {
+      "source": "KodekaTeam/superior-skills",
+      "sourceType": "github",
+      "skillPath": "skills/superior-api-security/SKILL.md",
+      "computedHash": "653bb2dfadb80e9ccb61526025357bfd56cebfb5ef407c6b8e8eb063b63620da"
+    },
+    "superior-architecture": {
+      "source": "KodekaTeam/superior-skills",
+      "sourceType": "github",
+      "skillPath": "skills/superior-architecture/SKILL.md",
+      "computedHash": "d0363685350988413e8aa0780f9a007da84c12b87f225fe8a4281048c9fc7524"
+    },
+    "superior-code-review": {
+      "source": "KodekaTeam/superior-skills",
+      "sourceType": "github",
+      "skillPath": "skills/superior-code-review/SKILL.md",
+      "computedHash": "bc6bdb6a337bd523bd53678eb36d6f6ef2186bb7f8dc498a1525484d08d38a7b"
+    },
+    "superior-comments": {
+      "source": "KodekaTeam/superior-skills",
+      "sourceType": "github",
+      "skillPath": "skills/superior-comments/SKILL.md",
+      "computedHash": "9848aaf26f18144fd4d8598f2640d3637a54dd214da5f8cc789a0513c5e9cf6a"
+    },
+    "superior-copywriting": {
+      "source": "KodekaTeam/superior-skills",
+      "sourceType": "github",
+      "skillPath": "skills/superior-copywriting/SKILL.md",
+      "computedHash": "bf83d41c964909088a8c932a0b40f1869218ef221a12f7aec4483f2ce0692904"
+    },
+    "superior-database": {
+      "source": "KodekaTeam/superior-skills",
+      "sourceType": "github",
+      "skillPath": "skills/superior-database/SKILL.md",
+      "computedHash": "4e2520a2b824df7bbd2b9433b8a86b742b5d183457681c472fa01c19655b29d1"
+    },
+    "superior-debugging": {
+      "source": "KodekaTeam/superior-skills",
+      "sourceType": "github",
+      "skillPath": "skills/superior-debugging/SKILL.md",
+      "computedHash": "3ee80c5c2a55cf1103e81aa1977ba44dc2ede5db7c1de4db7b369bc92a986554"
+    },
+    "superior-delivery": {
+      "source": "KodekaTeam/superior-skills",
+      "sourceType": "github",
+      "skillPath": "skills/superior-delivery/SKILL.md",
+      "computedHash": "170aca3659b19f6817a16f717d0befb19a38a1a433c407f555e23cee52d1c688"
+    },
+    "superior-docs": {
+      "source": "KodekaTeam/superior-skills",
+      "sourceType": "github",
+      "skillPath": "skills/superior-docs/SKILL.md",
+      "computedHash": "83cf54e8cf00d50c25c547db0dfc563b4c8de0abd9faebeaf68529501529d1a4"
+    },
+    "superior-lean": {
+      "source": "KodekaTeam/superior-skills",
+      "sourceType": "github",
+      "skillPath": "skills/superior-lean/SKILL.md",
+      "computedHash": "933b5589f2e52188119b14f395e3d1022fc4d883bda6ead5f7c52dc32a512220"
+    },
+    "superior-logic": {
+      "source": "KodekaTeam/superior-skills",
+      "sourceType": "github",
+      "skillPath": "skills/superior-logic/SKILL.md",
+      "computedHash": "786a10c09859beb4976efe606d95be3e7d45cc5c827d42db497998c66503376e"
+    },
+    "superior-performance": {
+      "source": "KodekaTeam/superior-skills",
+      "sourceType": "github",
+      "skillPath": "skills/superior-performance/SKILL.md",
+      "computedHash": "d4ff3006dea29e052b749f13570d2b95edc202fc28ba33d5ea8286b5d2f4d3a1"
+    },
+    "superior-reliability": {
+      "source": "KodekaTeam/superior-skills",
+      "sourceType": "github",
+      "skillPath": "skills/superior-reliability/SKILL.md",
+      "computedHash": "0e0bebd4cb2ca53517f88d2864ba1b11dff8e3aa1ea5b4a34a5c61f74a014415"
+    },
+    "superior-responsive": {
+      "source": "KodekaTeam/superior-skills",
+      "sourceType": "github",
+      "skillPath": "skills/superior-responsive/SKILL.md",
+      "computedHash": "5d03d76106d07725e79178c1bd101ab7b945c3c42a5e30b774a8159707039166"
+    },
+    "superior-testing": {
+      "source": "KodekaTeam/superior-skills",
+      "sourceType": "github",
+      "skillPath": "skills/superior-testing/SKILL.md",
+      "computedHash": "cba08d570cf0d9769a16dd8e04197cd487973062b007fc6c69460e81577b8517"
+    },
+    "superior-ui": {
+      "source": "KodekaTeam/superior-skills",
+      "sourceType": "github",
+      "skillPath": "skills/superior-ui/SKILL.md",
+      "computedHash": "568b882edd6201c0e4e4166d6c2ede8a84359d4f8fc49b7721150be1f1d997bf"
+    },
+    "superior-ui-audit": {
+      "source": "KodekaTeam/superior-skills",
+      "sourceType": "github",
+      "skillPath": "skills/superior-ui-audit/SKILL.md",
+      "computedHash": "2ada82836bfa2a16794454b416ef4013852d72315367b218a25874d44af2d532"
+    },
+    "superior-ux": {
+      "source": "KodekaTeam/superior-skills",
+      "sourceType": "github",
+      "skillPath": "skills/superior-ux/SKILL.md",
+      "computedHash": "739307be10627959832030c79b6f8f2cfa9c09c0b80f907940805b5e4a4ab44e"
+    },
     "web3d-integration-patterns": {
       "source": "freshtechbro/claudedesignskills",
       "sourceType": "github",
