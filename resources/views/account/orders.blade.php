@@ -7,8 +7,8 @@
         <div class="relative z-10 max-w-[1200px] mx-auto px-4 sm:px-6 space-y-8">
             <div data-reveal="up" class="border-b border-[#E3D9C9] pb-5 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
                 <div>
-                    <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold">Portal Pengunjung &bull; Riwayat Tiket Resmi</span>
-                    <h1 class="font-serif text-3xl sm:text-4xl font-bold text-[#2A211A] mt-1">Riwayat Pemesanan & E-Ticket</h1>
+                    <span class="text-xs uppercase tracking-[0.08em] text-[#A67C52] font-semibold">Portal Pengunjung Resmi</span>
+                    <h1 class="font-serif text-3xl sm:text-4xl font-bold text-[#2A211A] mt-1">Riwayat Pemesanan &amp; E-Ticket</h1>
                     <p class="text-sm text-[#6E635A] mt-1">
                         Masuk sebagai <strong>{{ $user->name }}</strong> ({{ $user->email }})
                     </p>
@@ -19,12 +19,17 @@
             </div>
 
             @if($orders->isEmpty())
-                <!-- Exact Empty State from DESIGN.md §11 -->
                 <div data-reveal="scale" class="border border-[#E3D9C9] bg-[#FFFFFF] p-12 text-center space-y-4">
-                    <h2 class="font-serif text-2xl text-[#2A211A]">Anda belum memiliki pemesanan.</h2>
-                    <p class="text-sm text-[#6E635A]">Pilih jadwal sesi tour aktif untuk mulai memesan tiket kunjungan.</p>
-                    <div>
-                        <a href="{{ route('events.index') }}" class="btn-heritage-secondary">Jelajahi Event</a>
+                    <div class="w-12 h-12 mx-auto rounded-full bg-[#FAF6EE] border border-[#E3D9C9] flex items-center justify-center text-[#6B3F1E]" aria-hidden="true">
+                        <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75">
+                            <rect x="3" y="6" width="18" height="12" rx="2"/>
+                            <line x1="8" y1="6" x2="8" y2="18" stroke-dasharray="2 2"/>
+                        </svg>
+                    </div>
+                    <h2 class="font-serif text-2xl text-[#2A211A]">Anda belum memiliki riwayat pemesanan.</h2>
+                    <p class="text-sm text-[#6E635A] max-w-[48ch] mx-auto">Pilih jadwal sesi tour aktif untuk mulai memesan tiket kunjungan edukasi sejarah pabrik gula.</p>
+                    <div class="pt-2">
+                        <a href="{{ route('events.index') }}" class="btn-heritage-secondary">Jelajahi Jadwal Tour</a>
                     </div>
                 </div>
             @else
