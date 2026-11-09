@@ -106,7 +106,7 @@ class AdminDashboardController extends Controller
             : 0;
 
         // Build Event Tour Donut Chart distribution from loaded schedules (zero extra SQL queries)
-        $donutPalette = ['#fe7096', '#36a2eb', '#4bc0c0', '#a461d8', '#ff9f40'];
+        $donutPalette = ['#6B3F1E', '#C8A24A', '#A67C52', '#4A6B3A', '#B8860B'];
         $circumference = 84.823; // 2 * pi * 13.5
         $groupedByEvent = $schedules->groupBy('event_id');
         $totalEventWeight = $totalQuotaBooked > 0 ? $totalQuotaBooked : max(1, $totalQuotaCapacity);
